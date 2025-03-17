@@ -8,14 +8,8 @@ services:
         build:
             context: .
             dockerfile: ./Dockerfile
-        # tty: true
-        # command:
-        #     - /bin/bash
-        #     - -c
-        #     - |
-        #         python /app/app_prod.py
-        # volumes:
-        #     - ./:/app
+        volumes:
+            - ./assets:/usr/src/app/assets
         ports:
             - 5001:5000
         restart: unless-stopped

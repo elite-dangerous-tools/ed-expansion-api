@@ -1,3 +1,5 @@
+const { descargar_sistemas, extraer_sistemas, descargar_estaciones, extraer_estaciones } = require("./descargar");
+
 const express = require("express");
 const app = express();
 
@@ -10,10 +12,11 @@ app.get("/", (req, res) => {
     });
 });
 
-// Ruta de ejemplo
-app.get('/api/saludo', (req, res) => {
-    res.json({ message: '¡Hola, mundo!' });
-});
+app.get("/api/descargar_sistemas", descargar_sistemas);
+app.get("/api/extraer_sistemas", extraer_sistemas);
+
+app.get("/api/descargar_estaciones", descargar_estaciones);
+app.get("/api/extraer_estaciones", extraer_estaciones);
 
 app.listen(port, () => {
     console.log(`Servidor corriendo en http://localhost:${port}`);
