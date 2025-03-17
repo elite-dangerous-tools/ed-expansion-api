@@ -2,8 +2,8 @@ const path = require('path');
 
 const { descargar } = require("./descargar");
 
-const sistemasUrl = 'https://www.edsm.net/dump/stations.json.gz';
-const sistemasJson = '../assets/systems.json';
+const estacionesUrl = 'https://www.edsm.net/dump/stations.json.gz';
+const estacionesJson = '../assets/stations.json';
 
 let tipos = [];
 
@@ -38,7 +38,7 @@ function filtrarSistema(linea) {
 }
 
 exports.descargar_estaciones = async (req, res) => {
-    const filePath = path.join(__dirname, sistemasJson);
+    const filePath = path.join(__dirname, estacionesJson);
 
-    await descargar(req, res, sistemasUrl, filePath, filtrarSistema);
+    await descargar(req, res, estacionesUrl, filePath, filtrarSistema);
 };
