@@ -31,7 +31,7 @@ function escaparComillas(nombre) {
 }
 
 // Descargar y procesar el JSON
-async function descargarYProcesar() {
+async function descargarYProcesar(req, res) {
     console.log("Descargando archivo...");
     const request = https.get(sistemasUrl, response => {
         const gunzip = zlib.createGunzip();
@@ -73,6 +73,7 @@ async function descargarYProcesar() {
             if (batch.length > 0) await insertarBatch(batch);
             console.log("Proceso completado.");
             client.end();
+            res.json({ message: "Proceso completado" });
         });
 
         rl.on("error", err => console.error("Error leyendo archivo:", err));
@@ -129,5 +130,5 @@ function comprobarSistema(sistema) {
 
 exports.descargar_sistemas = async (req, res) => {
     // Ejecutar el proceso
-    await descargarYProcesar();
+    await descargarYProcesar(req, res);
 };
