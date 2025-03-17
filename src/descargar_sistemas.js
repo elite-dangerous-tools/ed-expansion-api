@@ -7,9 +7,13 @@ const sistemasJson = '../assets/systems.json';
 const limite = 1000;
 
 function filtrarSistema(linea) {
-    if (linea[linea.length - 1] == ',') {
-        linea = linea.substring(0, linea.length - 1);
-    }
+    // if (linea[linea.length - 1] == ',') {
+    //     linea = linea.substring(0, linea.length - 1);
+    // }
+
+    // Eliminar la coma final si existe
+    linea = line.replace(/,$/, '');
+
     
     let sistema = JSON.parse(linea);
     if (sistema.coords.x > limite) {

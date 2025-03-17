@@ -6,10 +6,14 @@ const estacionesUrl = 'https://www.edsm.net/dump/stations.json.gz';
 const estacionesJson = '../assets/stations.json';
 
 function filtrarEstacion(linea) {
-    if (linea[linea.length - 1] == ',') {
-        linea = linea.substring(0, linea.length - 1);
-    }
+    // if (linea[linea.length - 1] == ',') {
+    //     linea = linea.substring(0, linea.length - 1);
+    // }
     
+    // Eliminar la coma final si existe
+    linea = line.replace(/,$/, '');
+
+
     let estacion = JSON.parse(linea);
     if (estacion.haveMarket == false) {
         return null;
