@@ -5,6 +5,8 @@ const { descargar } = require("./descargar");
 const sistemasUrl = 'https://www.edsm.net/dump/stations.json.gz';
 const sistemasJson = '../assets/systems.json';
 
+let tipos = [];
+
 function filtrarSistema(linea) {
     if (linea[linea.length - 1] == ',') {
         linea = linea.substring(0, linea.length - 1);
@@ -15,6 +17,18 @@ function filtrarSistema(linea) {
         return null;
     }
 
+    if (sistema.type == "Fleet Carrier") {
+        return null;
+    }
+    if (sistema.type == null) {
+        return null;
+    }
+
+    if (!tipos.includes(sistema.type)) {
+        tipos.push(sistema.type);
+        console.log(tipos);
+    }
+
     delete sistema.otherServices;
     delete sistema.controllingFaction;
     delete sistema.updateTime;
@@ -23,7 +37,7 @@ function filtrarSistema(linea) {
     return sistema;
 }
 
-exports.descargar_sistemas = async (req, res) => {
+exports.descargar_estaciones = async (req, res) => {
     const filePath = path.join(__dirname, sistemasJson);
 
     await descargar(req, res, sistemasUrl, filePath, filtrarSistema);
