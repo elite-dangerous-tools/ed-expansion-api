@@ -1,46 +1,125 @@
-const path = require('path');
+const fs = require("fs");
+const https = require("https");
+const zlib = require("zlib");
+const readline = require("readline");
+const { Client } = require("pg");
 
-const { descargar } = require("./descargar");
+const limiteAlcance = 1000;
+const sistemasUrl = "https://www.edsm.net/dump/systemsWithCoordinates.json.gz";
 
-const sistemasUrl = 'https://www.edsm.net/dump/systemsWithCoordinates.json.gz';
-const sistemasJson = '../assets/systems.json';
-const limite = 1000;
+const dbConfig = {
+    user: "postgres",
+    host: "stormseekers.twilightparadox.com",
+    database: "elite",
+    password: "8UtsF1FuIskBRt9TTfnM2",
+    port: 5432
+};
 
-function filtrarSistema(linea) {
-    // if (linea[linea.length - 1] == ',') {
-    //     linea = linea.substring(0, linea.length - 1);
-    // }
+// Conectar a PostgreSQL
+const client = new Client(dbConfig);
+client.connect();
 
-    // Eliminar la coma final si existe
-    linea = line.replace(/,$/, '');
+let batch = [];
+const limiteBatch = 5; // Inserción en lotes
 
-    
-    let sistema = JSON.parse(linea);
-    if (sistema.coords.x > limite) {
-        return null;
+// Descargar y procesar el JSON
+async function descargarYProcesar() {
+    console.log("Descargando archivo...");
+    const request = https.get(sistemasUrl, response => {
+        const gunzip = zlib.createGunzip();
+        const rl = readline.createInterface({ input: response.pipe(gunzip) });
+
+        console.log("Leyendo archivo...");
+        rl.on("line", async line => {
+            if (line.trim() === "[" || line.trim() === "]") return; // Ignorar corchetes
+
+            try {
+                const cleanedLine = line.replace(/,$/, ""); // Quitar coma final
+                const system = JSON.parse(cleanedLine);
+
+                const sistemaAlAlcance = comprobarSistema(system);
+                if (sistemaAlAlcance) {
+                    batch.push([system.name, system.coords.x, system.coords.y, system.coords.z]);
+
+                    if (batch.length >= limiteBatch) {
+                        rl.pause(); // Pausar lectura para evitar que siga acumulando líneas
+
+                        const copiaBatch = [...batch];
+                        batch = [];
+
+                        // Insertar el batch y vaciarlo
+                        await insertarBatch(copiaBatch);
+
+                        rl.resume(); // Reanudar lectura tras insertar
+                    }
+                }
+            } catch (err) {
+                console.error("Error con lectura y guardado:", err);
+                rl.close();
+            }
+        });
+
+        rl.on("close", async () => {
+            // Insertar el último batch si no está vacío
+            if (batch.length > 0) await insertarBatch(batch);
+            console.log("Proceso completado.");
+            client.end();
+        });
+
+        rl.on("error", err => console.error("Error leyendo archivo:", err));
+    });
+
+    request.on("error", err => console.error("Error descargando archivo:", err));
+}
+
+// Insertar batch en PostgreSQL
+async function insertarBatch(batch) {
+    const valores = batch.map(system => `('${system[0]}', ${system[1]}, ${system[2]}, ${system[3]})`).join(",");
+
+    const query = `
+        INSERT INTO SISTEMAS(nombre, x, y, z)
+        VALUES ${valores}
+        ON CONFLICT (nombre) DO NOTHING;
+    `;
+
+    try {
+        await client.query(query);
+    } catch (err) {
+        console.error("Error insertando batch:", query, err);
+        console.log("-------------");
     }
-    if (sistema.coords.y > limite) {
-        return null;
+}
+
+function comprobarSistema(sistema) {
+    if (sistema.coords == null || sistema.coords == undefined) {
+        return false;
     }
-    if (sistema.coords.z > limite) {
-        return null;
+
+    if (
+        sistema.coords.x == null ||
+        sistema.coords.x == undefined ||
+        sistema.coords.y == null ||
+        sistema.coords.y == undefined ||
+        sistema.coords.z == null ||
+        sistema.coords.z == undefined
+    ) {
+        return false;
     }
 
-    delete sistema.id;
-    delete sistema.id64;
-    delete sistema.date;
+    if (sistema.coords.x > limiteAlcance) {
+        return false;
+    }
+    if (sistema.coords.y > limiteAlcance) {
+        return false;
+    }
+    if (sistema.coords.z > limiteAlcance) {
+        return false;
+    }
 
-    sistema.c = sistema.coords;
-    delete sistema.coords;
-
-    sistema.n = sistema.name;
-    delete sistema.name;
-
-    return sistema;
+    return true;
 }
 
 exports.descargar_sistemas = async (req, res) => {
-    const filePath = path.join(__dirname, sistemasJson);
-
-    await descargar(req, res, sistemasUrl, filePath, filtrarSistema);
+    // Ejecutar el proceso
+    await descargarYProcesar();
 };
