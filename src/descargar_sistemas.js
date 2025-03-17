@@ -20,7 +20,15 @@ const client = new Client(dbConfig);
 client.connect();
 
 let batch = [];
-const limiteBatch = 5; // Inserción en lotes
+const limiteBatch = 100; // Inserción en lotes
+
+// Función para escapar comillas en nombres de sistemas
+function escaparComillas(nombre) {
+    if (nombre) {
+        return nombre.replace(/'/g, "''"); // Escapar comillas simples
+    }
+    return nombre;
+}
 
 // Descargar y procesar el JSON
 async function descargarYProcesar() {
@@ -39,15 +47,16 @@ async function descargarYProcesar() {
 
                 const sistemaAlAlcance = comprobarSistema(system);
                 if (sistemaAlAlcance) {
-                    batch.push([system.name, system.coords.x, system.coords.y, system.coords.z]);
+                    // Escapar el nombre del sistema
+                    const nombreEscapado = escaparComillas(system.name);
+
+                    batch.push([nombreEscapado, system.coords.x, system.coords.y, system.coords.z]);
 
                     if (batch.length >= limiteBatch) {
                         rl.pause(); // Pausar lectura para evitar que siga acumulando líneas
 
                         const copiaBatch = [...batch];
                         batch = [];
-
-                        // Insertar el batch y vaciarlo
                         await insertarBatch(copiaBatch);
 
                         rl.resume(); // Reanudar lectura tras insertar
@@ -85,8 +94,7 @@ async function insertarBatch(batch) {
     try {
         await client.query(query);
     } catch (err) {
-        console.error("Error insertando batch:", query, err);
-        console.log("-------------");
+        console.error("Error insertando batch:", err);
     }
 }
 
@@ -106,13 +114,13 @@ function comprobarSistema(sistema) {
         return false;
     }
 
-    if (sistema.coords.x > limiteAlcance) {
+    if (Math.abs(sistema.coords.x) > limiteAlcance) {
         return false;
     }
-    if (sistema.coords.y > limiteAlcance) {
+    if (Math.abs(sistema.coords.y) > limiteAlcance) {
         return false;
     }
-    if (sistema.coords.z > limiteAlcance) {
+    if (Math.abs(sistema.coords.z) > limiteAlcance) {
         return false;
     }
 
