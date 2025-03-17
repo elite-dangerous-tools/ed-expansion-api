@@ -11,7 +11,7 @@ services:
         volumes:
             - ./assets:/usr/src/app/assets
         ports:
-            - 5001:5000
+            - 5000:5000
         restart: unless-stopped
         logging:
             options:
