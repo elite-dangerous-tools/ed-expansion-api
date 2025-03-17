@@ -1,22 +1,15 @@
-const fs = require("fs");
 const https = require("https");
 const zlib = require("zlib");
 const readline = require("readline");
 const { Client } = require("pg");
 
+const { db_config } = require("./db_config");
+
 const limiteAlcance = 1000;
 const sistemasUrl = "https://www.edsm.net/dump/systemsWithCoordinates.json.gz";
 
-const dbConfig = {
-    user: "postgres",
-    host: "stormseekers.twilightparadox.com",
-    database: "elite",
-    password: "8UtsF1FuIskBRt9TTfnM2",
-    port: 5432
-};
-
 // Conectar a PostgreSQL
-const client = new Client(dbConfig);
+const client = new Client(db_config);
 client.connect();
 
 let batch = [];

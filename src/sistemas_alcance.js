@@ -1,70 +1,47 @@
-// const fs = require('fs');
-// const JSONStream = require('JSONStream');
 
-// const rutaSistemas = "./assets/systems.json";
+const { Client } = require("pg");
+const { db_config } = require("./db_config");
 
-// function distanciaSistema(sistemaOrigen, sistemaNuevo) {
-//     const x1 = sistemaOrigen.c.x;
-//     const y1 = sistemaOrigen.c.y;
-//     const z1 = sistemaOrigen.c.z;
+const client = new Client(db_config);
+client.connect();
 
-//     const x2 = sistemaNuevo.c.x;
-//     const y2 = sistemaNuevo.c.y;
-//     const z2 = sistemaNuevo.c.z;
+async function buscarSistemasCercanos(x, y, z, distancia) {
+    const query = `
+        SELECT nombre, x, y, z
+        FROM (
+            select nombre, x, y, z,
+            sqrt(pow(x - '${x}', 2) + pow(y - '${y}', 2) + pow(z - '${z}', 2)) AS distancia
+            from sistemas
+        ) as tabla
+        WHERE distancia < ${distancia}
+        ORDER BY distancia
+    `;
 
-//     const d = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) + Math.pow(z2 - z1, 2) * 1.0);
-//     return d;
-// }
+    const { rows } = await client.query(query);
+    
+    return rows;
+}
 
-// function devolverSistemas(sistemasBurbuja, nombreSistema, req, res) {
-//     let sistemaOrigen = sistemasBurbuja.find(fila => fila.n.toLocaleLowerCase() === nombreSistema.toLocaleLowerCase());
+exports.sistemas_alcance = async (req, res) => {
+    try {
+        const { distancia, sistema } = req.query;
+        const query = `SELECT nombre, x, y, z FROM sistemas WHERE nombre = '${sistema}' `;
 
-//     let sistemasValidos = [];
-//     sistemasBurbuja.forEach(sistema => {
-//         let anyosLuz = distanciaSistema(sistemaOrigen, sistema);
+        const { rows } = await client.query(query);
+        
+        if (rows.length == 1) {
+            const s = rows[0];
+            let listaSistemas = await buscarSistemasCercanos(s.x, s.y, s.z, distancia);
+            res.json(listaSistemas);
+        } else {
+            res.json({message: "Nada para el sistema " + sistema});
+        }
 
-//         if (anyosLuz <= radio) {
-//             sistemasValidos.push({
-//                 name: sistema.n,
-//                 distance: anyosLuz
-//             });
-//         }
-//     });
+        // buscarSistemasCercanos();
 
-//     res.json(sistemasValidos);
-// }
-
-// async function recuperarSistemasAlcance(radio, nombreSistema, req, res) {
-//     const sistemasBurbuja = [];
-
-//     const stream = fs.createReadStream(rutaSistemas, { encoding: 'utf8' });
-//     const parser = JSONStream.parse('*'); // Procesa cada objeto del JSON
-
-//     stream.pipe(parser);
-
-//     parser.on('data', (sistema) => {
-//         sistemasBurbuja.push(sistema);
-//     });
-
-//     parser.on('end', () => {
-//         console.log('Lectura completa.');
-//         devolverSistemas(sistemasBurbuja, nombreSistema, req, res)
-//     });
-
-//     parser.on('error', (err) => {
-//         console.error('Error al procesar el JSON:', err);
-//     });
-
-// }
-
-// exports.sistemas_alcance = async (req, res) => {
-//     try {
-//         const { distancia, sistema } = req.query;
-
-//         recuperarSistemasAlcance(parseInt(distancia), sistema, req, res);
-//         // res.json(sistemasAlcance);
-//     } catch (error) {
-//         console.log(error);
-//         res.json({ message: "Fallo crítico al buscar sistemas al alcance" });
-//     }
-// };
+        // res.json(sistemasAlcance);
+    } catch (error) {
+        console.log(error);
+        res.json({ message: "Fallo crítico al buscar sistemas al alcance" });
+    }
+};
