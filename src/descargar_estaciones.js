@@ -5,40 +5,33 @@ const { descargar } = require("./descargar");
 const estacionesUrl = 'https://www.edsm.net/dump/stations.json.gz';
 const estacionesJson = '../assets/stations.json';
 
-let tipos = [];
-
-function filtrarSistema(linea) {
+function filtrarEstacion(linea) {
     if (linea[linea.length - 1] == ',') {
         linea = linea.substring(0, linea.length - 1);
     }
     
-    let sistema = JSON.parse(linea);
-    if (sistema.haveMarket == false) {
+    let estacion = JSON.parse(linea);
+    if (estacion.haveMarket == false) {
         return null;
     }
 
-    if (sistema.type == "Fleet Carrier") {
+    if (estacion.type == "Fleet Carrier") {
         return null;
     }
-    if (sistema.type == null) {
+    if (estacion.type == null) {
         return null;
     }
 
-    if (!tipos.includes(sistema.type)) {
-        tipos.push(sistema.type);
-        console.log(tipos);
-    }
+    delete estacion.otherServices;
+    delete estacion.controllingFaction;
+    delete estacion.updateTime;
+    delete estacion.outfitting;
 
-    delete sistema.otherServices;
-    delete sistema.controllingFaction;
-    delete sistema.updateTime;
-    delete sistema.outfitting;
-
-    return sistema;
+    return estacion;
 }
 
 exports.descargar_estaciones = async (req, res) => {
     const filePath = path.join(__dirname, estacionesJson);
 
-    await descargar(req, res, estacionesUrl, filePath, filtrarSistema);
+    await descargar(req, res, estacionesUrl, filePath, filtrarEstacion);
 };

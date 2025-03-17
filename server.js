@@ -1,4 +1,5 @@
 const { descargar_estaciones } = require("./src/descargar_estaciones");
+const { descargar_sistemas } = require("./src/descargar_sistemas");
 
 const express = require("express");
 const app = express();
@@ -13,6 +14,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/descargar_estaciones", descargar_estaciones);
+app.get("/api/descargar_sistemas", descargar_sistemas);
 
 app.listen(port, () => {
     console.log(`Servidor corriendo en http://localhost:${port}`);
