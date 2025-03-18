@@ -118,6 +118,10 @@ function comprobarSistema(sistema) {
         return false;
     }
 
+    if (sistema.name == 'AssetViewerSystem') {
+        return false;
+    }
+
     return true;
 }
 
