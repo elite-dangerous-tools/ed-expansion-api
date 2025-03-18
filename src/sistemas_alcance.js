@@ -8,7 +8,7 @@ client.connect();
 async function buscarSistemasCercanos(x, y, z, distancia) {
     const query = `
 
-        SELECT nombre, x, y, z
+        SELECT nombre, x, y, z, distancia
         FROM (
             SELECT nombre, x, y, z,
                 sqrt(pow(x - ${x}, 2) + pow(y - ${y}, 2) + pow(z - ${z}, 2)) AS distancia
