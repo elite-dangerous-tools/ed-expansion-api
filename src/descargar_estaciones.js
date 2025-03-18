@@ -106,7 +106,9 @@ async function insertarBatch() {
         WHERE EXISTS (
             SELECT 1 FROM estaciones WHERE estaciones.id = temp.id_estacion
         )
-        ON CONFLICT DO NOTHING;
+        ON CONFLICT (id_producto, id_estacion) DO UPDATE
+        SET stock = EXCLUDED.stock,
+        sellPrice = EXCLUDED.sellPrice;
     `;
 
     try {
