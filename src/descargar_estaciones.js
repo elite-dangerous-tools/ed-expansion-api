@@ -12,7 +12,7 @@ const client = new Client(db_config);
 client.connect();
 
 let batch = [];
-const limiteBatch = 100; // Inserción en lotes
+const limiteBatch = 10000; // Inserción en lotes
 
 // Función para escapar comillas en nombres de estaciones
 function escaparComillas(nombre) {
@@ -25,12 +25,12 @@ function escaparComillas(nombre) {
 // Descargar y procesar el JSON
 async function descargarYProcesar(req, res) {
     console.log("Descargando archivo...");
-    const request = https.get(estacionesUrl, response => {
+    const request = https.get(estacionesUrl, (response) => {
         const gunzip = zlib.createGunzip();
         const rl = readline.createInterface({ input: response.pipe(gunzip) });
 
         console.log("Leyendo archivo...");
-        rl.on("line", async line => {
+        rl.on("line", async (line) => {
             if (line.trim() === "[" || line.trim() === "]") return; // Ignorar corchetes
 
             try {
@@ -38,11 +38,8 @@ async function descargarYProcesar(req, res) {
                 const estacion = JSON.parse(cleanedLine);
 
                 const estacionValida = filtrarEstacion(estacion);
-                rl.pause();
-
-                if (estacionValida) {
-                    // Escapar el nombre de la estación
-                    const nombreEscapado = escaparComillas(estacion.name);
+                if (estacionValida != null) {
+                    rl.pause();
 
                     // batch.push([nombreEscapado, system.coords.x, system.coords.y, system.coords.z]);
 
@@ -70,52 +67,50 @@ async function descargarYProcesar(req, res) {
             res.json({ message: "Proceso completado" });
         });
 
-        rl.on("error", err => console.error("Error leyendo archivo:", err));
+        rl.on("error", (err) => console.error("Error leyendo archivo:", err));
     });
 
-    request.on("error", err => console.error("Error descargando archivo:", err));
+    request.on("error", (err) => console.error("Error descargando archivo:", err));
 }
 
 // Insertar batch en PostgreSQL
-async function insertarBatch(batch) {
-    
+async function insertarBatch(batch) {}
+
+function filtrarEstacion(estacion) {
+    if (estacion.haveMarket == false) {
+        return null;
+    }
+
+    if (estacion.type == "Fleet Carrier") {
+        return null;
+    }
+    if (estacion.type == null) {
+        return null;
+    }
+
+    delete estacion.otherServices;
+    delete estacion.controllingFaction;
+    delete estacion.updateTime;
+    delete estacion.outfitting;
+
+    // Escapar el nombre de la estación
+    estacion.name = escaparComillas();
+
+    let estacionLite = {
+        systemId64: estacion.systemId64,
+        commodities: {
+            id: 'cmmcomposite',
+            name: 'CMM Composite',
+            buyPrice: 0,
+            stock: 0,
+            sellPrice: 7782,
+            demand: 48003,
+            stockBracket: 0
+        }
+    };
+
+    return estacion;
 }
-
-function filtrarEstacion(linea) {
-
-    console.log(linea);
-    return false;
-
-
-    // if (linea[linea.length - 1] == ',') {
-    //     linea = linea.substring(0, linea.length - 1);
-    // }
-    
-    let sistema = JSON.parse(linea);
-    if (sistema.haveMarket == false) {
-        return null;
-    }
-
-    if (sistema.type == "Fleet Carrier") {
-        return null;
-    }
-    if (sistema.type == null) {
-        return null;
-    }
-
-    if (!tipos.includes(sistema.type)) {
-        tipos.push(sistema.type);
-        console.log(tipos);
-    }
-
-    delete sistema.otherServices;
-    delete sistema.controllingFaction;
-    delete sistema.updateTime;
-    delete sistema.outfitting;
-
-    return sistema;
-}
-
 
 exports.descargar_estaciones = async (req, res) => {
     // Ejecutar el proceso

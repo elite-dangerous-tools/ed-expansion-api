@@ -13,7 +13,7 @@ const client = new Client(db_config);
 client.connect();
 
 let batch = [];
-const limiteBatch = 100; // Inserción en lotes
+const limiteBatch = 10000; // Inserción en lotes
 
 // Función para escapar comillas en nombres de sistemas
 function escaparComillas(nombre) {
