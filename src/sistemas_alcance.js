@@ -13,9 +13,9 @@ async function buscarSistemasCercanos(x, y, z, distancia) {
             SELECT nombre, x, y, z,
                 sqrt(pow(x - ${x}, 2) + pow(y - ${y}, 2) + pow(z - ${z}, 2)) AS distancia
             FROM sistemas
-            WHERE x BETWEEN (${x} - 15) AND (${x} + 15)
-            AND y BETWEEN (${y} - 15) AND (${y} + 15)
-            AND z BETWEEN (${z} - 15) AND (${z} + 15)
+            WHERE x BETWEEN (${x} - ${distancia}) AND (${x} + ${distancia})
+            AND y BETWEEN (${y} - ${distancia}) AND (${y} + ${distancia})
+            AND z BETWEEN (${z} - ${distancia}) AND (${z} + ${distancia})
         ) as tabla
         WHERE distancia < ${distancia}
         ORDER BY distancia
