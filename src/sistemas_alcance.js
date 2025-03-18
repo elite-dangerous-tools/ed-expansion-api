@@ -11,11 +11,11 @@ async function buscarSistemasCercanos(x, y, z, distancia) {
         SELECT nombre, x, y, z
         FROM (
             SELECT nombre, x, y, z,
-                sqrt(pow(x - '${x}', 2) + pow(y - '${y}', 2) + pow(z - '${z}', 2)) AS distancia
+                sqrt(pow(x - ${x}, 2) + pow(y - ${y}, 2) + pow(z - ${z}, 2)) AS distancia
             FROM sistemas
-            WHERE x BETWEEN ('${x}' - 15) AND ('${x}' + 15)
-            AND y BETWEEN ('${y}' - 15) AND ('${y}' + 15)
-            AND z BETWEEN ('${z}' - 15) AND ('${z}' + 15)
+            WHERE x BETWEEN (${x} - 15) AND (${x} + 15)
+            AND y BETWEEN (${y} - 15) AND (${y} + 15)
+            AND z BETWEEN (${z} - 15) AND (${z} + 15)
         ) as tabla
         WHERE distancia < ${distancia}
         ORDER BY distancia
@@ -41,9 +41,6 @@ exports.sistemas_alcance = async (req, res) => {
             res.json({message: "Nada para el sistema " + sistema});
         }
 
-        // buscarSistemasCercanos();
-
-        // res.json(sistemasAlcance);
     } catch (error) {
         console.log(error);
         res.json({ message: "Fallo crítico al buscar sistemas al alcance" });
