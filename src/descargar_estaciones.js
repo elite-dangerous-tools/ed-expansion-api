@@ -16,7 +16,9 @@ let productosSinGuardar = [];
 let estaciones = [];
 let productosEstaciones = [];
 
-const limiteBatch = 1000; // Inserción en lotes
+// Inserción en lotes
+const limiteBatchEstaciones = 1000;
+const limiteBatchProductos = 10;
 
 // Función para escapar comillas en nombres de estaciones
 function escaparComillas(nombre) {
@@ -50,8 +52,11 @@ async function descargarYProcesar(req, res) {
                         productosSinGuardar = [];
                     }
                     
-                    if (estaciones.length > limiteBatch) {
-                        await insertarBatch();
+                    if (estaciones.length > limiteBatchEstaciones) {
+                        await insertarBatchEstaciones();
+                    }
+                    if (productosEstaciones.length > limiteBatchProductos) {
+                        await insertarBatchStock();
                     }
                     
                     rl.resume();
@@ -64,7 +69,13 @@ async function descargarYProcesar(req, res) {
 
         rl.on("close", async () => {
             // Insertar el último batch si no está vacío
-            if (estaciones.length > 0) await insertarBatch();
+            if (estaciones.length > 0) {
+                await insertarBatchEstaciones();
+            }
+            if (productosEstaciones.length > 0) {
+                await insertarBatchStock();
+            }
+            
             console.log("Proceso completado.");
             client.end();
             res.json({ message: "Proceso completado" });
@@ -76,8 +87,7 @@ async function descargarYProcesar(req, res) {
     request.on("error", (err) => console.error("Error descargando archivo:", err));
 }
 
-// Insertar batch en PostgreSQL
-async function insertarBatch() {
+async function insertarBatchEstaciones() {
     const valoresEstaciones = estaciones.map(est => 
         `(${est.id}, '${est.name}', ${est.distanceToArrival}, '${est.type}', ${est.systemId64})`
     ).join(",");
@@ -98,7 +108,9 @@ async function insertarBatch() {
     }
     estaciones = [];
     
-    
+}
+
+async function insertarBatchStock() {
     const valoresProductosEstaciones = productosEstaciones.map(pe => `('${pe.id_producto}', ${pe.id_estacion}, ${pe.stock}, ${pe.sellPrice})`).join(",");
     const queryProductosEstaciones = `
         INSERT INTO producto_estacion (id_producto, id_estacion, stock, sellPrice)
