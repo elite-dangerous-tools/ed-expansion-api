@@ -3,6 +3,7 @@ const { descargar_sistemas } = require("./src/descargar_sistemas");
 const { descargar_estaciones } = require("./src/descargar_estaciones");
 const { sistemas_alcance } = require("./src/sistemas_alcance");
 const { estaciones_producto } = require("./src/estaciones_producto");
+const { productos } = require("./src/productos");
 
 const cors = require('cors');
 const express = require("express");
@@ -27,6 +28,7 @@ app.get("/api/descargar_sistemas", descargar_sistemas);
 app.get("/api/descargar_estaciones", descargar_estaciones);
 app.get("/api/sistemas_alcance", sistemas_alcance);
 app.get("/api/estaciones_producto", estaciones_producto);
+app.get("/api/productos", productos);
 
 app.listen(port, () => {
     console.log(`Servidor corriendo en http://localhost:${port}`);
