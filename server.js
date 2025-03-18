@@ -1,5 +1,6 @@
 
 const { descargar_sistemas } = require("./src/descargar_sistemas");
+const { descargar_estaciones } = require("./src/descargar_estaciones");
 const { sistemas_alcance } = require("./src/sistemas_alcance");
 
 const cors = require('cors');
@@ -22,6 +23,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/descargar_sistemas", descargar_sistemas);
+app.get("/api/descargar_estaciones", descargar_estaciones);
 app.get("/api/sistemas_alcance", sistemas_alcance);
 
 app.listen(port, () => {

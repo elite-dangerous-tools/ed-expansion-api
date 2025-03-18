@@ -43,7 +43,7 @@ async function descargarYProcesar(req, res) {
                     // Escapar el nombre del sistema
                     const nombreEscapado = escaparComillas(system.name);
 
-                    batch.push([nombreEscapado, system.coords.x, system.coords.y, system.coords.z]);
+                    batch.push([system.id64, nombreEscapado, system.coords.x, system.coords.y, system.coords.z]);
 
                     if (batch.length >= limiteBatch) {
                         rl.pause(); // Pausar lectura para evitar que siga acumulando líneas
@@ -77,12 +77,12 @@ async function descargarYProcesar(req, res) {
 
 // Insertar batch en PostgreSQL
 async function insertarBatch(batch) {
-    const valores = batch.map(system => `('${system[0]}', ${system[1]}, ${system[2]}, ${system[3]})`).join(",");
+    const valores = batch.map(system => `(${system[0]}, '${system[1]}', ${system[2]}, ${system[3]}, ${system[4]})`).join(",");
 
     const query = `
-        INSERT INTO SISTEMAS(nombre, x, y, z)
+        INSERT INTO SISTEMAS(systemid64, nombre, x, y, z)
         VALUES ${valores}
-        ON CONFLICT (nombre) DO NOTHING;
+        ON CONFLICT (systemid64) DO NOTHING;
     `;
 
     try {
