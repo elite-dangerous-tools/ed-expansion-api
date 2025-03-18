@@ -29,6 +29,12 @@ async function buscarSistemasCercanos(x, y, z, distancia) {
 exports.sistemas_alcance = async (req, res) => {
     try {
         const { distancia, sistema } = req.query;
+
+        if (distancia > 100) {
+            // No permitimos tanta distancia
+            res.json([]);
+        }
+
         const query = `SELECT nombre, x, y, z FROM sistemas WHERE nombre = '${sistema}' `;
 
         const { rows } = await client.query(query);
@@ -38,7 +44,7 @@ exports.sistemas_alcance = async (req, res) => {
             let listaSistemas = await buscarSistemasCercanos(s.x, s.y, s.z, distancia);
             res.json(listaSistemas);
         } else {
-            res.json({message: "Nada para el sistema " + sistema});
+            res.json([]);
         }
 
     } catch (error) {
