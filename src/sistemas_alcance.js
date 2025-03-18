@@ -5,20 +5,20 @@ const { db_config } = require("./db_config");
 const client = new Client(db_config);
 client.connect();
 
-async function buscarSistemasCercanos(x, y, z, distancia) {
+async function buscarSistemasCercanos(sistema, distancia) {
     const query = `
-
-        SELECT nombre, x, y, z, distancia
-        FROM (
-            SELECT nombre, x, y, z,
-                sqrt(pow(x - ${x}, 2) + pow(y - ${y}, 2) + pow(z - ${z}, 2)) AS distancia
-            FROM sistemas
-            WHERE x BETWEEN (${x} - ${distancia}) AND (${x} + ${distancia})
-            AND y BETWEEN (${y} - ${distancia}) AND (${y} + ${distancia})
-            AND z BETWEEN (${z} - ${distancia}) AND (${z} + ${distancia})
-        ) as tabla
-        WHERE distancia < ${distancia}
-        ORDER BY distancia
+        WITH origen AS (
+            SELECT x, y, z FROM sistemas WHERE nombre = '${sistema}'
+        )
+        SELECT s.nombre, 
+            sqrt(pow(s.x - o.x, 2) + pow(s.y - o.y, 2) + pow(s.z - o.z, 2)) AS distancia
+        FROM sistemas s
+        JOIN origen o ON 
+            s.x BETWEEN (o.x - ${distancia}) AND (o.x + ${distancia})
+            AND s.y BETWEEN (o.y - ${distancia}) AND (o.y + ${distancia})
+            AND s.z BETWEEN (o.z - ${distancia}) AND (o.z + ${distancia})
+        WHERE sqrt(pow(s.x - o.x, 2) + pow(s.y - o.y, 2) + pow(s.z - o.z, 2)) < ${distancia}
+        ORDER BY distancia;
     `;
 
     const { rows } = await client.query(query);
@@ -35,17 +35,8 @@ exports.sistemas_alcance = async (req, res) => {
             res.json([]);
         }
 
-        const query = `SELECT nombre, x, y, z FROM sistemas WHERE nombre = '${sistema}' `;
-
-        const { rows } = await client.query(query);
-        
-        if (rows.length == 1) {
-            const s = rows[0];
-            let listaSistemas = await buscarSistemasCercanos(s.x, s.y, s.z, distancia);
-            res.json(listaSistemas);
-        } else {
-            res.json([]);
-        }
+        let listaSistemas = await buscarSistemasCercanos(sistema, distancia);
+        res.json(listaSistemas);
 
     } catch (error) {
         console.log(error);
