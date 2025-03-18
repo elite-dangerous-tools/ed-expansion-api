@@ -11,8 +11,12 @@ const estacionesUrl = "https://www.edsm.net/dump/stations.json.gz";
 const client = new Client(db_config);
 client.connect();
 
-let batch = [];
-const limiteBatch = 10000; // Inserción en lotes
+let productos = [];
+let productosSinGuardar = [];
+let estaciones = [];
+let productosEstaciones = [];
+
+const limiteBatch = 1000; // Inserción en lotes
 
 // Función para escapar comillas en nombres de estaciones
 function escaparComillas(nombre) {
@@ -36,22 +40,21 @@ async function descargarYProcesar(req, res) {
             try {
                 const cleanedLine = line.replace(/,$/, ""); // Quitar coma final
                 const estacion = JSON.parse(cleanedLine);
-
+                
                 const estacionValida = filtrarEstacion(estacion);
-                if (estacionValida != null) {
+                if (estacionValida == true) {
                     rl.pause();
 
-                    // batch.push([nombreEscapado, system.coords.x, system.coords.y, system.coords.z]);
-
-                    // if (batch.length >= limiteBatch) {
-                    //     rl.pause(); // Pausar lectura para evitar que siga acumulando líneas
-
-                    //     const copiaBatch = [...batch];
-                    //     batch = [];
-                    //     await insertarBatch(copiaBatch);
-
-                    //     rl.resume(); // Reanudar lectura tras insertar
-                    // }
+                    if (productosSinGuardar.length > 0) {
+                        await insertarProductos();
+                        productosSinGuardar = [];
+                    }
+                    
+                    if (estaciones.length > limiteBatch) {
+                        await insertarBatch();
+                    }
+                    
+                    rl.resume();
                 }
             } catch (err) {
                 console.error("Error con lectura y guardado:", err);
@@ -61,7 +64,7 @@ async function descargarYProcesar(req, res) {
 
         rl.on("close", async () => {
             // Insertar el último batch si no está vacío
-            if (batch.length > 0) await insertarBatch(batch);
+            if (estaciones.length > 0) await insertarBatch();
             console.log("Proceso completado.");
             client.end();
             res.json({ message: "Proceso completado" });
@@ -74,45 +77,120 @@ async function descargarYProcesar(req, res) {
 }
 
 // Insertar batch en PostgreSQL
-async function insertarBatch(batch) {}
+async function insertarBatch() {
+    const valoresEstaciones = estaciones.map(est => 
+        `(${est.id}, '${est.name}', ${est.distanceToArrival}, '${est.type}', ${est.systemId64})`
+    ).join(",");
+    
+    const queryEstaciones = `
+        INSERT INTO estaciones (id, name, distance, type, systemId64)
+        SELECT * FROM (VALUES ${valoresEstaciones}) AS temp(id, name, distance, type, systemId64)
+        WHERE EXISTS (
+            SELECT 1 FROM sistemas WHERE sistemas.systemid64 = temp.systemId64
+        )
+        ON CONFLICT DO NOTHING;
+    `;
+
+    try {
+        await client.query(queryEstaciones);
+    } catch (err) {
+        console.error("Error insertando batch:", err);
+    }
+    estaciones = [];
+    
+    
+    const valoresProductosEstaciones = productosEstaciones.map(pe => `('${pe.id_producto}', ${pe.id_estacion}, ${pe.stock}, ${pe.sellPrice})`).join(",");
+    const queryProductosEstaciones = `
+        INSERT INTO producto_estacion (id_producto, id_estacion, stock, sellPrice)
+        SELECT * FROM (VALUES ${valoresProductosEstaciones}) AS temp(id_producto, id_estacion, stock, sellPrice)
+        WHERE EXISTS (
+            SELECT 1 FROM estaciones WHERE estaciones.id = temp.id_estacion
+        )
+        ON CONFLICT DO NOTHING;
+    `;
+
+    try {
+        await client.query(queryProductosEstaciones);
+    } catch (err) {
+        console.error("Error insertando batch:", err);
+    }
+    productosEstaciones = [];
+}
+
+
+async function insertarProductos() {
+    const valores = productosSinGuardar.map(prod => `('${prod.id}', '${prod.name}')`).join(",");
+    
+    const query = `
+        INSERT INTO productos(id, name)
+        VALUES ${valores}
+        ON CONFLICT (id) DO NOTHING;
+    `;
+
+    try {
+        await client.query(query);
+    } catch (err) {
+        console.error("Error insertando batch:", err);
+    }
+}
 
 function filtrarEstacion(estacion) {
     if (estacion.haveMarket == false) {
-        return null;
+        return false;
     }
-
     if (estacion.type == "Fleet Carrier") {
-        return null;
+        return false;
     }
     if (estacion.type == null) {
-        return null;
+        return false;
+    }
+    if (!estacion.commodities || estacion.commodities.length <= 0) {
+        return false;
     }
 
-    delete estacion.otherServices;
-    delete estacion.controllingFaction;
-    delete estacion.updateTime;
-    delete estacion.outfitting;
-
     // Escapar el nombre de la estación
-    estacion.name = escaparComillas();
+    const nombreEstacion = escaparComillas(estacion.name);
 
-    let estacionLite = {
-        systemId64: estacion.systemId64,
-        commodities: {
-            id: 'cmmcomposite',
-            name: 'CMM Composite',
-            buyPrice: 0,
-            stock: 0,
-            sellPrice: 7782,
-            demand: 48003,
-            stockBracket: 0
-        }
+    const datosEstacion = {
+        id: estacion.id,
+        name: nombreEstacion,
+        type: estacion.type,
+        distanceToArrival: estacion.distanceToArrival,
+        systemId64: estacion.systemId64
     };
 
-    return estacion;
+    estacion.commodities.forEach(producto => {
+        let existe = productos.findIndex(fila => fila.id == producto.id) >= 0;
+        if (!existe) {
+            let datosProducto = {
+                id: producto.id,
+                name: escaparComillas(producto.name)
+            };
+            productos.push(datosProducto);
+            productosSinGuardar.push(datosProducto);
+        }
+
+        if (producto.stock > 0) {
+            productosEstaciones.push({
+                id_producto: producto.id,
+                id_estacion: estacion.id,
+                stock: producto.stock,
+                sellPrice: producto.sellPrice,
+            });
+        }
+    });
+
+    estaciones.push(datosEstacion);
+
+    return true;
 }
 
 exports.descargar_estaciones = async (req, res) => {
+
+    const query = `SELECT id from productos `;
+    const { rows } = await client.query(query);
+    productos = [...rows];
+
     // Ejecutar el proceso
     await descargarYProcesar(req, res);
 };
