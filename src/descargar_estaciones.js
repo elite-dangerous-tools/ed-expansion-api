@@ -11,14 +11,14 @@ const estacionesUrl = "https://www.edsm.net/dump/stations.json.gz";
 const client = new Client(db_config);
 client.connect();
 
+contadorEstaciones = 0;
 let productos = [];
 let productosSinGuardar = [];
 let estaciones = [];
 let productosEstaciones = [];
 
 // Inserción en lotes
-const limiteBatchEstaciones = 1000;
-const limiteBatchProductos = 10;
+const limiteBatch = 5000;
 
 // Función para escapar comillas en nombres de estaciones
 function escaparComillas(nombre) {
@@ -52,10 +52,8 @@ async function descargarYProcesar(req, res) {
                         productosSinGuardar = [];
                     }
                     
-                    if (estaciones.length > limiteBatchEstaciones) {
+                    if (estaciones.length > limiteBatch || productosEstaciones.length > limiteBatch) {
                         await insertarBatchEstaciones();
-                    }
-                    if (productosEstaciones.length > limiteBatchProductos) {
                         await insertarBatchStock();
                     }
                     
@@ -69,10 +67,8 @@ async function descargarYProcesar(req, res) {
 
         rl.on("close", async () => {
             // Insertar el último batch si no está vacío
-            if (estaciones.length > 0) {
+            if (estaciones.length > 0 || productosEstaciones.length > 0) {
                 await insertarBatchEstaciones();
-            }
-            if (productosEstaciones.length > 0) {
                 await insertarBatchStock();
             }
             
@@ -111,6 +107,13 @@ async function insertarBatchEstaciones() {
 }
 
 async function insertarBatchStock() {
+    // Hay filas duplicadas que tenemos que descartar
+    productosEstaciones = Array.from(
+        new Map(
+            productosEstaciones.map(pe => [`${pe.id_producto}-${pe.id_estacion}`, pe])
+        ).values()
+    );
+    
     const valoresProductosEstaciones = productosEstaciones.map(pe => `('${pe.id_producto}', ${pe.id_estacion}, ${pe.stock}, ${pe.sellPrice})`).join(",");
     const queryProductosEstaciones = `
         INSERT INTO producto_estacion (id_producto, id_estacion, stock, sellPrice)
@@ -195,6 +198,11 @@ function filtrarEstacion(estacion) {
     });
 
     estaciones.push(datosEstacion);
+
+    contadorEstaciones++;
+    if (contadorEstaciones % 1000 === 0) {
+        console.log(contadorEstaciones, nombreEstacion);
+    }
 
     return true;
 }
