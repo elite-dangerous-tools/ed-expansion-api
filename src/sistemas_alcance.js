@@ -26,7 +26,6 @@ async function buscarSistemasCercanos(sistema, distancia) {
         SELECT nombre, distancia
         FROM distancias
         WHERE distancia <= ${distanciaPlus}
-        ORDER BY distancia
     `;
 
     const { rows } = await client.query(query);

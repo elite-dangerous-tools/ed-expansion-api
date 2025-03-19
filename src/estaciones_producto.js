@@ -29,7 +29,6 @@ async function buscarEstacionesProducto(sistemaOrigen, distancia, productos) {
         AND s.z BETWEEN (origen.z - ${distanciaPlus}) AND (origen.z + ${distanciaPlus})
 
         AND pe.id_producto IN (${valores})
-        ORDER BY pe.id_estacion
     `;
 
     const { rows } = await client.query(query);
