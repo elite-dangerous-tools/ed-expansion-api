@@ -7,7 +7,7 @@ client.connect();
 
 async function buscarProductos() {
     const query = `
-        SELECT * FROM productos ORDER BY nombre
+        SELECT * FROM productos
     `;
 
     const { rows } = await client.query(query);
