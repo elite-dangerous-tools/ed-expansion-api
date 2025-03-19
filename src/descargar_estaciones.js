@@ -74,10 +74,10 @@ async function descargarYProcesar(res) {
 
             client.end();
             
-            const mensaje = "Proceso completado";
+            const mensaje = "Proceso de descargar estaciones y precios completado";
             console.log(mensaje);
             if (res) {
-                res.json({ message: "" });
+                res.json({ message: mensaje });
             }
         });
 
