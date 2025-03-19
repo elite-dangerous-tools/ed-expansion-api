@@ -29,7 +29,7 @@ function escaparComillas(nombre) {
 }
 
 // Descargar y procesar el JSON
-async function descargarYProcesar(req, res) {
+async function descargarYProcesar(res) {
     console.log("Descargando archivo...");
     const request = https.get(estacionesUrl, (response) => {
         const gunzip = zlib.createGunzip();
@@ -42,7 +42,7 @@ async function descargarYProcesar(req, res) {
             try {
                 const cleanedLine = line.replace(/,$/, ""); // Quitar coma final
                 const estacion = JSON.parse(cleanedLine);
-                
+
                 const estacionValida = filtrarEstacion(estacion);
                 if (estacionValida == true) {
                     rl.pause();
@@ -51,12 +51,12 @@ async function descargarYProcesar(req, res) {
                         await insertarProductos();
                         productosSinGuardar = [];
                     }
-                    
+
                     if (estaciones.length > limiteBatch || productosEstaciones.length > limiteBatch) {
                         await insertarBatchEstaciones();
                         await insertarBatchStock();
                     }
-                    
+
                     rl.resume();
                 }
             } catch (err) {
@@ -71,10 +71,14 @@ async function descargarYProcesar(req, res) {
                 await insertarBatchEstaciones();
                 await insertarBatchStock();
             }
-            
-            console.log("Proceso completado.");
+
             client.end();
-            res.json({ message: "Proceso completado" });
+            
+            const mensaje = "Proceso completado";
+            console.log(mensaje);
+            if (res) {
+                res.json({ message: "" });
+            }
         });
 
         rl.on("error", (err) => console.error("Error leyendo archivo:", err));
@@ -84,10 +88,8 @@ async function descargarYProcesar(req, res) {
 }
 
 async function insertarBatchEstaciones() {
-    const valoresEstaciones = estaciones.map(est => 
-        `(${est.id}, '${est.name}', ${est.distanceToArrival}, '${est.type}', ${est.systemId64})`
-    ).join(",");
-    
+    const valoresEstaciones = estaciones.map((est) => `(${est.id}, '${est.name}', ${est.distanceToArrival}, '${est.type}', ${est.systemId64})`).join(",");
+
     const queryEstaciones = `
         INSERT INTO estaciones (id, name, distance, type, systemId64)
         SELECT * FROM (VALUES ${valoresEstaciones}) AS temp(id, name, distance, type, systemId64)
@@ -103,18 +105,13 @@ async function insertarBatchEstaciones() {
         console.error("Error insertando batch:", err);
     }
     estaciones = [];
-    
 }
 
 async function insertarBatchStock() {
     // Hay filas duplicadas que tenemos que descartar
-    productosEstaciones = Array.from(
-        new Map(
-            productosEstaciones.map(pe => [`${pe.id_producto}-${pe.id_estacion}`, pe])
-        ).values()
-    );
-    
-    const valoresProductosEstaciones = productosEstaciones.map(pe => `('${pe.id_producto}', ${pe.id_estacion}, ${pe.stock}, ${pe.sellPrice})`).join(",");
+    productosEstaciones = Array.from(new Map(productosEstaciones.map((pe) => [`${pe.id_producto}-${pe.id_estacion}`, pe])).values());
+
+    const valoresProductosEstaciones = productosEstaciones.map((pe) => `('${pe.id_producto}', ${pe.id_estacion}, ${pe.stock}, ${pe.sellPrice})`).join(",");
     const queryProductosEstaciones = `
         INSERT INTO producto_estacion (id_producto, id_estacion, stock, sellPrice)
         SELECT * FROM (VALUES ${valoresProductosEstaciones}) AS temp(id_producto, id_estacion, stock, sellPrice)
@@ -134,10 +131,9 @@ async function insertarBatchStock() {
     productosEstaciones = [];
 }
 
-
 async function insertarProductos() {
-    const valores = productosSinGuardar.map(prod => `('${prod.id}', '${prod.name}')`).join(",");
-    
+    const valores = productosSinGuardar.map((prod) => `('${prod.id}', '${prod.name}')`).join(",");
+
     const query = `
         INSERT INTO productos(id, name)
         VALUES ${valores}
@@ -173,15 +169,15 @@ function filtrarEstacion(estacion) {
         name: nombreEstacion,
         type: estacion.type,
         distanceToArrival: estacion.distanceToArrival,
-        systemId64: estacion.systemId64
+        systemId64: estacion.systemId64,
     };
 
-    estacion.commodities.forEach(producto => {
-        let existe = productos.findIndex(fila => fila.id == producto.id) >= 0;
+    estacion.commodities.forEach((producto) => {
+        let existe = productos.findIndex((fila) => fila.id == producto.id) >= 0;
         if (!existe) {
             let datosProducto = {
                 id: producto.id,
-                name: escaparComillas(producto.name)
+                name: escaparComillas(producto.name),
             };
             productos.push(datosProducto);
             productosSinGuardar.push(datosProducto);
@@ -208,11 +204,10 @@ function filtrarEstacion(estacion) {
 }
 
 exports.descargar_estaciones = async (req, res) => {
-
     const query = `SELECT id from productos `;
     const { rows } = await client.query(query);
     productos = [...rows];
 
     // Ejecutar el proceso
-    await descargarYProcesar(req, res);
+    await descargarYProcesar(res);
 };
