@@ -5,7 +5,9 @@ const { db_config } = require("./db_config");
 const client = new Client(db_config);
 client.connect();
 
-async function buscarEstacionesProducto(sistemaOrigen, distancia, producto) {
+async function buscarEstacionesProducto(sistemaOrigen, distancia, productos) {
+    const valores = productos.map(producto => `'${producto}'`).join(",");
+
     const query = `
         SELECT *
         FROM estaciones AS e,
@@ -21,7 +23,7 @@ async function buscarEstacionesProducto(sistemaOrigen, distancia, producto) {
                 s.y BETWEEN (origen.y - ${distancia}) AND (origen.y + ${distancia}) AND
                 s.z BETWEEN (origen.z - ${distancia}) AND (origen.z + ${distancia})
         )
-        and pe.id_producto = '${producto}'
+        and pe.id_producto in (${valores})
         and pe.id_estacion = e.id
     `;
 
@@ -39,7 +41,14 @@ exports.estaciones_producto = async (req, res) => {
             res.json([]);
         }
 
-        let listaEstaciones = await buscarEstacionesProducto(sistema, distancia, producto);
+        let productos = [];
+        if (Array.isArray(producto)) {
+            productos = [...producto]
+        } else {
+            productos.push(producto);
+        }
+
+        let listaEstaciones = await buscarEstacionesProducto(sistema, distancia, productos);
         res.json(listaEstaciones);
 
     } catch (error) {
