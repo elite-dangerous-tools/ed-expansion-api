@@ -7,10 +7,7 @@ client.connect();
 
 async function buscarEstacionesProducto(sistemaOrigen, distancia, productos) {
     const valores = productos.map(producto => `'${producto}'`).join(",");
-
-    // Permitimos un 110% del valor inicial
-    const distanciaInicial = parseInt(distancia);
-    const distanciaPlus = (distanciaInicial * 1.1).toFixed(2);
+    const distanciaOrigen = parseInt(distancia);
 
     const query = `
         SELECT
@@ -24,9 +21,9 @@ async function buscarEstacionesProducto(sistemaOrigen, distancia, productos) {
             JOIN producto_estacion AS pe ON (pe.id_estacion = e.id),
             (SELECT systemid64, nombre, x, y, z FROM sistemas WHERE nombre = '${sistemaOrigen}') AS origen
         WHERE
-            s.x BETWEEN (origen.x - ${distanciaPlus}) AND (origen.x + ${distanciaPlus})
-        AND s.y BETWEEN (origen.y - ${distanciaPlus}) AND (origen.y + ${distanciaPlus})
-        AND s.z BETWEEN (origen.z - ${distanciaPlus}) AND (origen.z + ${distanciaPlus})
+            s.x BETWEEN (origen.x - ${distanciaOrigen}) AND (origen.x + ${distanciaOrigen})
+        AND s.y BETWEEN (origen.y - ${distanciaOrigen}) AND (origen.y + ${distanciaOrigen})
+        AND s.z BETWEEN (origen.z - ${distanciaOrigen}) AND (origen.z + ${distanciaOrigen})
 
         AND pe.id_producto IN (${valores})
     `;

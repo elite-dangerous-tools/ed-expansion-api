@@ -6,9 +6,10 @@ const client = new Client(db_config);
 client.connect();
 
 async function buscarSistemasCercanos(sistema, distancia) {
+    const distanciaOrigen = parseInt(distancia);
+    
     // Permitimos un 110% del valor inicial
-    const distanciaInicial = parseInt(distancia);
-    const distanciaPlus = (distanciaInicial * 1.1).toFixed(2);
+    const distanciaPlus = (distanciaOrigen * 1.1).toFixed(2);
 
     const query = `
         WITH origen AS (
@@ -19,9 +20,9 @@ async function buscarSistemasCercanos(sistema, distancia) {
                 sqrt(pow(s.x - o.x, 2) + pow(s.y - o.y, 2) + pow(s.z - o.z, 2)) AS distancia
             FROM sistemas s
             JOIN origen o ON 
-                s.x BETWEEN (o.x - ${distanciaPlus}) AND (o.x + ${distanciaPlus})
-                AND s.y BETWEEN (o.y - ${distanciaPlus}) AND (o.y + ${distanciaPlus})
-                AND s.z BETWEEN (o.z - ${distanciaPlus}) AND (o.z + ${distanciaPlus})
+                s.x BETWEEN (o.x - ${distanciaOrigen}) AND (o.x + ${distanciaOrigen})
+                AND s.y BETWEEN (o.y - ${distanciaOrigen}) AND (o.y + ${distanciaOrigen})
+                AND s.z BETWEEN (o.z - ${distanciaOrigen}) AND (o.z + ${distanciaOrigen})
         )
         SELECT nombre, distancia
         FROM distancias
