@@ -6,8 +6,9 @@ const client = new Client(db_config);
 client.connect();
 
 async function buscarSistemasCercanos(sistema, distancia) {
-    // Permitimos una pequeña desviación al aproximar para el JOIN, despues en el WHERE se descarta el resto
-    const distanciaPlus = parseInt(distancia) + 5;
+    // Permitimos un 110% del valor inicial
+    const distanciaInicial = parseInt(distancia);
+    const distanciaPlus = (distanciaInicial * 1.1).toFixed(2);
 
     const query = `
         WITH origen AS (
@@ -24,7 +25,7 @@ async function buscarSistemasCercanos(sistema, distancia) {
         )
         SELECT nombre, distancia
         FROM distancias
-        WHERE distancia <= ${distancia}
+        WHERE distancia <= ${distanciaPlus}
         ORDER BY distancia
     `;
 
