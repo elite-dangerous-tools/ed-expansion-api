@@ -5,6 +5,7 @@ const { sistemas_alcance } = require("./src/sistemas_alcance");
 const { estaciones_producto } = require("./src/estaciones_producto");
 const { productos } = require("./src/productos");
 
+const cron = require('node-cron');
 const cors = require('cors');
 const express = require("express");
 const app = express();
@@ -15,6 +16,12 @@ const port = process.env.PORT || 5000;
 // Permitimos CORS de sitios nuestros
 const allowedOrigins = ['http://localhost:4000', 'https://storm-seekers.gitlab.io'];
 app.use(cors({ origin: allowedOrigins }));
+
+
+// Programa una tarea para que se ejecute todos los días a las 7 a.m.
+cron.schedule('0 7 * * *', () => {
+    descargar_estaciones();
+});
 
 
 // Ruta de inicio
