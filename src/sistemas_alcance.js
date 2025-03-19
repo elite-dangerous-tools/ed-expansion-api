@@ -6,19 +6,26 @@ const client = new Client(db_config);
 client.connect();
 
 async function buscarSistemasCercanos(sistema, distancia) {
+    // Permitimos una pequeña desviación al aproximar para el JOIN, despues en el WHERE se descarta el resto
+    const distanciaPlus = parseInt(distancia) + 5;
+
     const query = `
         WITH origen AS (
             SELECT x, y, z FROM sistemas WHERE nombre = '${sistema}'
+        ),
+        distancias AS (
+            SELECT s.nombre, 
+                sqrt(pow(s.x - o.x, 2) + pow(s.y - o.y, 2) + pow(s.z - o.z, 2)) AS distancia
+            FROM sistemas s
+            JOIN origen o ON 
+                s.x BETWEEN (o.x - ${distanciaPlus}) AND (o.x + ${distanciaPlus})
+                AND s.y BETWEEN (o.y - ${distanciaPlus}) AND (o.y + ${distanciaPlus})
+                AND s.z BETWEEN (o.z - ${distanciaPlus}) AND (o.z + ${distanciaPlus})
         )
-        SELECT s.nombre, 
-            sqrt(pow(s.x - o.x, 2) + pow(s.y - o.y, 2) + pow(s.z - o.z, 2)) AS distancia
-        FROM sistemas s
-        JOIN origen o ON 
-            s.x BETWEEN (o.x - ${distancia}) AND (o.x + ${distancia})
-            AND s.y BETWEEN (o.y - ${distancia}) AND (o.y + ${distancia})
-            AND s.z BETWEEN (o.z - ${distancia}) AND (o.z + ${distancia})
-        WHERE sqrt(pow(s.x - o.x, 2) + pow(s.y - o.y, 2) + pow(s.z - o.z, 2)) < ${distancia}
-        ORDER BY distancia;
+        SELECT nombre, distancia
+        FROM distancias
+        WHERE distancia <= ${distancia}
+        ORDER BY distancia
     `;
 
     const { rows } = await client.query(query);
@@ -33,6 +40,7 @@ exports.sistemas_alcance = async (req, res) => {
         if (distancia > 100) {
             // No permitimos tanta distancia
             res.json([]);
+            return;
         }
 
         let listaSistemas = await buscarSistemasCercanos(sistema, distancia);
