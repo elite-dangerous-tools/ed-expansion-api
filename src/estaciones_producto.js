@@ -8,6 +8,10 @@ client.connect();
 async function buscarEstacionesProducto(sistemaOrigen, distancia, productos) {
     const valores = productos.map(producto => `'${producto}'`).join(",");
 
+    // Permitimos un 110% del valor inicial
+    const distanciaInicial = parseInt(distancia);
+    const distanciaPlus = distanciaInicial * 1.1;
+
     const query = `
         SELECT e."name", e.distance, e."type", pe.id_producto, pe.id_estacion, pe.stock, pe.sellprice
         FROM estaciones AS e,
@@ -19,9 +23,9 @@ async function buscarEstacionesProducto(sistemaOrigen, distancia, productos) {
                 sistemas as s,
                 (SELECT systemid64, nombre, x, y, z FROM sistemas WHERE nombre = '${sistemaOrigen}') as origen
             where 
-                s.x BETWEEN (origen.x - ${distancia}) AND (origen.x + ${distancia}) AND
-                s.y BETWEEN (origen.y - ${distancia}) AND (origen.y + ${distancia}) AND
-                s.z BETWEEN (origen.z - ${distancia}) AND (origen.z + ${distancia})
+                s.x BETWEEN (origen.x - ${distanciaPlus}) AND (origen.x + ${distanciaPlus}) AND
+                s.y BETWEEN (origen.y - ${distanciaPlus}) AND (origen.y + ${distanciaPlus}) AND
+                s.z BETWEEN (origen.z - ${distanciaPlus}) AND (origen.z + ${distanciaPlus})
         )
         and pe.id_producto in (${valores})
         and pe.id_estacion = e.id
@@ -39,6 +43,7 @@ exports.estaciones_producto = async (req, res) => {
         if (distancia > 100) {
             // No permitimos tanta distancia
             res.json([]);
+            return;
         }
 
         let productos = [];
