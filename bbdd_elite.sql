@@ -43,3 +43,17 @@ CREATE TABLE public.producto_estacion (
 	CONSTRAINT producto_estacion_productos_fk FOREIGN KEY (id_producto) REFERENCES public.productos(id) ON DELETE SET NULL ON UPDATE SET NULL DEFERRABLE INITIALLY DEFERRED
 );
 CREATE UNIQUE INDEX producto_estacion_id_producto_idx ON public.producto_estacion USING btree (id_producto, id_estacion);
+
+
+
+
+CREATE MATERIALIZED VIEW vista_productos AS
+SELECT p.id, p.name, p.nombre, pe.max_stock, pe.avg_stock
+FROM productos p
+JOIN (
+    SELECT id_producto, 
+           MAX(stock) AS max_stock,
+           ROUND(AVG(stock), 2) AS avg_stock
+    FROM producto_estacion
+    GROUP BY id_producto
+) pe ON p.id = pe.id_producto;

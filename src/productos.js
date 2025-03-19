@@ -6,9 +6,8 @@ const client = new Client(db_config);
 client.connect();
 
 async function buscarProductos() {
-    const query = `
-        SELECT * FROM productos
-    `;
+    // const query = `SELECT * FROM productos`;
+    const query = `SELECT * FROM vista_productos`;
 
     const { rows } = await client.query(query);
     

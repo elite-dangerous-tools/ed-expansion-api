@@ -72,7 +72,11 @@ async function descargarYProcesar(res) {
                 await insertarBatchStock();
             }
 
+            
+            // Al terminar, actualizamos la vista de productos
+            await client.query("REFRESH MATERIALIZED VIEW vista_productos;");
             client.end();
+
             
             const mensaje = "Proceso de descargar estaciones y precios completado";
             console.log(mensaje);
