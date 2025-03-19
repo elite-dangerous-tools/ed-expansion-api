@@ -9,7 +9,7 @@ async function buscarEstacionesProducto(sistemaOrigen, distancia, productos) {
     const valores = productos.map(producto => `'${producto}'`).join(",");
 
     const query = `
-        SELECT *
+        SELECT e."name", e.distance, e."type", pe.id_producto, pe.id_estacion, pe.stock, pe.sellprice
         FROM estaciones AS e,
         producto_estacion as pe
         WHERE e.systemid64 IN 
