@@ -6,7 +6,7 @@ const client = new Client(db_config);
 client.connect();
 client.setTypeParser(20, val => parseInt(val));  // Para BIGINT
 
-async function buscarEstacionesProducto(sistemaOrigen, distancia, productos) {
+async function buscarEstacionesProducto(sistemaOrigen, distancia, productos, plataforma) {
     const valores = productos.map(producto => `'${producto}'`).join(",");
     const distanciaOrigen = parseInt(distancia);
 
@@ -36,7 +36,7 @@ async function buscarEstacionesProducto(sistemaOrigen, distancia, productos) {
 
 exports.estaciones_producto = async (req, res) => {
     try {
-        const { sistema, distancia, producto } = req.query;
+        const { sistema, distancia, productos, plataforma } = req.query;
 
         if (distancia > 150) {
             // No permitimos tanta distancia
@@ -44,14 +44,8 @@ exports.estaciones_producto = async (req, res) => {
             return;
         }
 
-        let productos = [];
-        if (Array.isArray(producto)) {
-            productos = [...producto]
-        } else {
-            productos.push(producto);
-        }
-
-        let listaEstaciones = await buscarEstacionesProducto(sistema, distancia, productos);
+        const listaProductos = productos.split(",");
+        let listaEstaciones = await buscarEstacionesProducto(sistema, distancia, listaProductos, plataforma);
         res.json(listaEstaciones);
 
     } catch (error) {
