@@ -37,7 +37,7 @@ exports.estaciones_producto = async (req, res) => {
     try {
         const { sistema, distancia, producto } = req.query;
 
-        if (distancia > 100) {
+        if (distancia > 150) {
             // No permitimos tanta distancia
             res.json([]);
             return;
