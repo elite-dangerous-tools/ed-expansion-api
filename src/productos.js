@@ -4,6 +4,7 @@ const { db_config } = require("./db_config");
 
 const client = new Client(db_config);
 client.connect();
+client.setTypeParser(20, val => parseInt(val));  // Para BIGINT
 
 async function buscarProductos() {
     // const query = `SELECT * FROM productos`;

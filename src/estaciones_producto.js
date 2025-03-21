@@ -4,6 +4,7 @@ const { db_config } = require("./db_config");
 
 const client = new Client(db_config);
 client.connect();
+client.setTypeParser(20, val => parseInt(val));  // Para BIGINT
 
 async function buscarEstacionesProducto(sistemaOrigen, distancia, productos) {
     const valores = productos.map(producto => `'${producto}'`).join(",");
