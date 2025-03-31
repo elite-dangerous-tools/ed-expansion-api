@@ -19,7 +19,7 @@ async function buscarDistanciaTrailblazer(sistema) {
             WHERE
                 s.nombre in ('HIP 90578', 'Orgen', 'Bletii', '34 Omicron Cephei', 'Klikis', 'Ngobe', 'Minerva')
 	            and e.name like 'Trailblazer%'
-            ORDER BY 2
+            ORDER BY distanciaSistema
     `;
 
     const { rows } = await client.query(query);
