@@ -16,9 +16,7 @@ async function buscarDistanciaTrailblazer(sistema) {
                 sistemas AS s
 	            JOIN estaciones AS e ON (s.systemid64 = e.systemid64),
                 (SELECT systemid64, nombre, x, y, z FROM sistemas WHERE nombre = '${sistema}') AS origen
-            WHERE
-                s.nombre in ('HIP 90578', 'Orgen', 'Bletii', '34 Omicron Cephei', 'Klikis', 'Ngobe', 'Minerva')
-	            and e.name like 'Trailblazer%'
+            WHERE e.name like 'Trailblazer%'
             ORDER BY distanciaSistema
     `;
 

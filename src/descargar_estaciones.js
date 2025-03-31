@@ -212,6 +212,11 @@ exports.descargar_estaciones = async (req, res) => {
     const { rows } = await client.query(query);
     productos = [...rows];
 
+    // Limpiamos datos antiguos
+    await client.query(`
+        TRUNCATE TABLE producto_estacion, estaciones
+    `);
+
     // Ejecutar el proceso
     await descargarYProcesar(res);
 };
