@@ -9,8 +9,9 @@ client.setTypeParser(20, val => parseInt(val));  // Para BIGINT
 async function buscarDistanciaTrailblazer(sistema) {
     const query = `
             SELECT
-                s.nombre as sistema,
-	            e.name as estacion,
+                s.nombre AS sistema,
+	            e.name AS estacion,
+                e.distance AS distanciaEstacion,
                 sqrt(pow(s.x - origen.x, 2) + pow(s.y - origen.y, 2) + pow(s.z - origen.z, 2)) AS distanciaSistema
             FROM
                 sistemas AS s
