@@ -19,8 +19,8 @@ async function buscarEstacionesProducto(sistemaOrigen, distancia, productos, pla
         FROM
             sistemas AS s
             JOIN estaciones AS e ON (e.systemid64 = s.systemid64)
-            JOIN producto_estacion AS pe ON (pe.id_estacion = e.id),
-            (SELECT systemid64, nombre, x, y, z FROM sistemas WHERE nombre = '${sistemaOrigen}') AS origen
+            JOIN producto_estacion AS pe ON (pe.id_estacion = e.id)
+            JOIN sistemas AS origen ON (origen.nombre = '${sistemaOrigen}')
         WHERE
             s.x BETWEEN (origen.x - ${distanciaOrigen}) AND (origen.x + ${distanciaOrigen})
         AND s.y BETWEEN (origen.y - ${distanciaOrigen}) AND (origen.y + ${distanciaOrigen})
