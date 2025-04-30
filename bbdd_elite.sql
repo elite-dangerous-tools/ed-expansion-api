@@ -48,7 +48,7 @@ CREATE UNIQUE INDEX producto_estacion_id_producto_idx ON public.producto_estacio
 
 
 CREATE MATERIALIZED VIEW vista_productos AS
-SELECT p.id, p.name, p.nombre, pe.max_stock, pe.avg_stock
+SELECT p.id, p.name, coalesce(p.nombre, p.name) as nombre, pe.max_stock, pe.avg_stock
 FROM productos p
 JOIN (
     SELECT id_producto, 
