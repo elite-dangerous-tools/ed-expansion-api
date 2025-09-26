@@ -1,4 +1,4 @@
-const { descargar_sistemas } = require('./src/descargar_sistemas');
+// const { descargar_sistemas } = require('./src/descargar_sistemas');
 const { descargar_estaciones } = require('./src/descargar_estaciones');
 const { sistemas_alcance } = require('./src/sistemas_alcance');
 const { estaciones_producto } = require('./src/estaciones_producto');
@@ -33,9 +33,6 @@ app.get('/', (req, res) => {
         message: '¡Bienvenido a la API REST!',
     });
 });
-
-app.get('/api/descargar_sistemas', descargar_sistemas);
-app.get('/api/descargar_estaciones', descargar_estaciones);
 
 app.get('/api/sistemas_alcance', sistemas_alcance);
 app.get('/api/estaciones_producto', estaciones_producto);
