@@ -64,9 +64,14 @@ async function descargarYProcesar(req, res) {
         rl.on("close", async () => {
             // Insertar el último batch si no está vacío
             if (batch.length > 0) await insertarBatch(batch);
-            console.log("Proceso completado.");
             client.end();
-            res.json({ message: "Proceso completado" });
+            
+            
+            const mensaje = "Proceso completado";
+            console.log(mensaje);
+            if (res) {
+                res.json({ message: mensaje });
+            }
         });
 
         rl.on("error", err => console.error("Error leyendo archivo:", err));

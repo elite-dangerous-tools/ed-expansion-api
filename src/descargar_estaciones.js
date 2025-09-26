@@ -29,7 +29,7 @@ function escaparComillas(nombre) {
 }
 
 // Descargar y procesar el JSON
-async function descargarYProcesar(res) {
+async function descargarYProcesar(req, res) {
     console.log("Descargando archivo...");
     const request = https.get(estacionesUrl, (response) => {
         const gunzip = zlib.createGunzip();
@@ -218,5 +218,5 @@ exports.descargar_estaciones = async (req, res) => {
     `);
 
     // Ejecutar el proceso
-    await descargarYProcesar(res);
+    await descargarYProcesar(req, res);
 };
