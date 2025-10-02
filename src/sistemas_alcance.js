@@ -17,7 +17,7 @@ async function buscarSistemasCercanos(sistema, distancia) {
             SELECT x, y, z FROM sistemas WHERE nombre = '${sistema}'
         ),
         distancias AS (
-            SELECT s.nombre as nombre_sistema, s.systemid64 as id_sistema,
+            SELECT s.nombre, s.systemid64 as id_sistema,
                 sqrt(pow(s.x - o.x, 2) + pow(s.y - o.y, 2) + pow(s.z - o.z, 2)) AS distancia
             FROM sistemas s
             JOIN origen o ON 
@@ -25,7 +25,7 @@ async function buscarSistemasCercanos(sistema, distancia) {
                 AND s.y BETWEEN (o.y - ${distanciaOrigen}) AND (o.y + ${distanciaOrigen})
                 AND s.z BETWEEN (o.z - ${distanciaOrigen}) AND (o.z + ${distanciaOrigen})
         )
-        SELECT nombre_sistema, distancia,
+        SELECT nombre, distancia,
         CASE WHEN EXISTS (
             SELECT 1
             FROM estaciones e
