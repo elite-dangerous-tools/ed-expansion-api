@@ -31,6 +31,7 @@ CREATE TABLE public.estaciones (
 	CONSTRAINT estaciones_pk PRIMARY KEY (id),
 	CONSTRAINT estaciones_sistemas_fk FOREIGN KEY (systemid64) REFERENCES public.sistemas(systemid64) ON DELETE SET NULL ON UPDATE SET NULL DEFERRABLE INITIALLY DEFERRED
 );
+CREATE INDEX estaciones_systemid64_idx ON public.estaciones USING btree (systemid64);
 
 
 
