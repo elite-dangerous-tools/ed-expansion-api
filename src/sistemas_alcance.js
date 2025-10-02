@@ -30,7 +30,14 @@ async function buscarSistemasCercanos(sistema, distancia) {
             SELECT 1
             FROM estaciones e
             WHERE e.systemid64 = distancias.id_sistema
-        ) THEN TRUE ELSE FALSE END AS tiene_estaciones
+            and e."name" like '%Construction Site%'
+        ) THEN TRUE ELSE FALSE END AS tiene_estaciones_construccion,
+        CASE WHEN EXISTS (
+            SELECT 1
+            FROM estaciones e
+            WHERE e.systemid64 = distancias.id_sistema
+            and e."name" not like '%Construction Site%'
+        ) THEN TRUE ELSE FALSE END AS tiene_estaciones_terminadas
         FROM distancias
         WHERE distancia <= ${distanciaPlus}
     `;
