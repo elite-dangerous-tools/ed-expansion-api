@@ -152,21 +152,30 @@ async function insertarProductos() {
 }
 
 function filtrarEstacion(estacion) {
-    if (estacion.haveMarket == false) {
+    // Escapar el nombre de la estación
+    const nombreEstacion = escaparComillas(estacion.name);
+    delete estacion.outfitting;
+
+
+    if (nombreEstacion.includes("Orbital Construction Site") || nombreEstacion.includes("System Colonisation Ship")) {
+        // Es un sistema reclamado, guardamos la estación para que detectemos el sistema como ocupado y no libre
+    } else if (estacion.type == "Fleet Carrier") {
+        // No guardamos los carriers
         return false;
-    }
-    if (estacion.type == "Fleet Carrier") {
+    } else if (estacion.haveMarket == false) {
+        // Es una estación terminada sin mercado
         return false;
-    }
-    if (estacion.type == null) {
+    } else if (estacion.type == null) {
+        // Es una estación terminada sin tipo
         return false;
-    }
-    if (!estacion.commodities || estacion.commodities.length <= 0) {
+    } else if (!estacion.commodities || estacion.commodities.length <= 0) {
+        // No tiene mercancias
         return false;
     }
 
-    // Escapar el nombre de la estación
-    const nombreEstacion = escaparComillas(estacion.name);
+    if (estacion.type == null) {
+        estacion.type == "-";
+    }
 
     const datosEstacion = {
         id: estacion.id,
