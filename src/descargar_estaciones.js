@@ -177,6 +177,10 @@ function filtrarEstacion(estacion) {
         estacion.type == "-";
     }
 
+    if (!estacion.commodities || estacion.commodities.length <= 0) {
+        estacion.commodities = [];
+    }
+
     const datosEstacion = {
         id: estacion.id,
         name: nombreEstacion,
