@@ -160,6 +160,9 @@ function filtrarEstacion(estacion) {
     } else if (estacion.type == "Fleet Carrier") {
         // No guardamos los carriers
         return false;
+    } else if (!estacion.systemId64) {
+        // No tiene sistema, no podemos guardarlo
+        return false;
     }
 
     if (estacion.type == null || estacion.type == undefined) {
