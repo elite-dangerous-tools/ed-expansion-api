@@ -162,7 +162,7 @@ function filtrarEstacion(estacion) {
         return false;
     }
 
-    if (estacion.type == null) {
+    if (estacion.type == null || estacion.type == undefined) {
         estacion.type == "-";
     }
 
