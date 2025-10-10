@@ -16,9 +16,9 @@ const port = process.env.PORT || 5000;
 const allowedOrigins = ["http://localhost:4000", "https://storm-seekers.gitlab.io"];
 app.use(cors({ origin: allowedOrigins }));
 
-// Programa una tarea para que se ejecute todos los días a las 7 a.m.
+// Programa una tarea para que se ejecute todos los días a las 6 a.m.
 cron.schedule(
-    "0 7 * * *",
+    "0 6 * * *",
     () => {
         descargar_estaciones();
     },

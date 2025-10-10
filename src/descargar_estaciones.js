@@ -154,31 +154,16 @@ async function insertarProductos() {
 function filtrarEstacion(estacion) {
     // Escapar el nombre de la estación
     const nombreEstacion = escaparComillas(estacion.name);
-    delete estacion.outfitting;
-
 
     if (nombreEstacion.includes("Orbital Construction Site") || nombreEstacion.includes("System Colonisation Ship")) {
         // Es un sistema reclamado, guardamos la estación para que detectemos el sistema como ocupado y no libre
     } else if (estacion.type == "Fleet Carrier") {
         // No guardamos los carriers
         return false;
-    } else if (estacion.haveMarket == false) {
-        // Es una estación terminada sin mercado
-        return false;
-    } else if (estacion.type == null) {
-        // Es una estación terminada sin tipo
-        return false;
-    } else if (!estacion.commodities || estacion.commodities.length <= 0) {
-        // No tiene mercancias
-        return false;
     }
 
     if (estacion.type == null) {
         estacion.type == "-";
-    }
-
-    if (!estacion.commodities || estacion.commodities.length <= 0) {
-        estacion.commodities = [];
     }
 
     const datosEstacion = {
@@ -189,26 +174,31 @@ function filtrarEstacion(estacion) {
         systemId64: estacion.systemId64,
     };
 
-    estacion.commodities.forEach((producto) => {
-        let existe = productos.findIndex((fila) => fila.id == producto.id) >= 0;
-        if (!existe) {
-            let datosProducto = {
-                id: producto.id,
-                name: escaparComillas(producto.name),
-            };
-            productos.push(datosProducto);
-            productosSinGuardar.push(datosProducto);
-        }
 
-        if (producto.stock > 0) {
-            productosEstaciones.push({
-                id_producto: producto.id,
-                id_estacion: estacion.id,
-                stock: producto.stock,
-                sellPrice: producto.sellPrice,
-            });
-        }
-    });
+    if (estacion.commodities && estacion.commodities.length > 0) {
+        
+        estacion.commodities.forEach((producto) => {
+            let existe = productos.findIndex((fila) => fila.id == producto.id) >= 0;
+            if (!existe) {
+                let datosProducto = {
+                    id: producto.id,
+                    name: escaparComillas(producto.name),
+                };
+                productos.push(datosProducto);
+                productosSinGuardar.push(datosProducto);
+            }
+
+            if (producto.stock > 0) {
+                productosEstaciones.push({
+                    id_producto: producto.id,
+                    id_estacion: estacion.id,
+                    stock: producto.stock,
+                    sellPrice: producto.sellPrice,
+                });
+            }
+        });
+
+    }
 
     estaciones.push(datosEstacion);
 
