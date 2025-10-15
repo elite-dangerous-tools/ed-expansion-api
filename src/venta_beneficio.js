@@ -71,12 +71,16 @@ exports.venta_beneficio = async (req, res) => {
 
             compras.forEach(compra => {
                 const beneficio = ((venta.sellprice / compra.buyprice) * 100) - 100;
-                let fila = {
-                    ...venta,
-                    ...compra,
-                    beneficio: beneficio
+
+                if (beneficio >= 100) {
+                    let fila = {
+                        ...venta,
+                        ...compra,
+                        beneficio: beneficio
+                    }
+                    lista.push(fila);
                 }
-                lista.push(fila);
+
             });
 
         });

@@ -2,6 +2,7 @@ const https = require("https");
 const zlib = require("zlib");
 const readline = require("readline");
 const { Client } = require("pg");
+const fs = require('fs');
 
 const { db_config } = require("./db_config");
 
@@ -107,16 +108,16 @@ async function insertarBatchEstaciones() {
     try {
         await client.query(queryEstaciones);
     } catch (err) {
-        console.error("Error insertando batch:", err);
+        console.error("Error sql insertar estaciones:", err);
     }
     estaciones = [];
 }
 
-async function insertarBatchStock() {
+async function insertarBatchStock(lista = productosEstaciones, vieneDeError=false) {
     // Hay filas duplicadas que tenemos que descartar
-    productosEstaciones = Array.from(new Map(productosEstaciones.map((pe) => [`${pe.id_producto}-${pe.id_estacion}`, pe])).values());
+    let mapaProductosEstaciones = Array.from(new Map(lista.map((pe) => [`${pe.id_producto}-${pe.id_estacion}`, pe])).values());
 
-    const valoresProductosEstaciones = productosEstaciones.map((pe) => 
+    const valoresProductosEstaciones = mapaProductosEstaciones.map((pe) => 
         `('${pe.id_producto}', ${pe.id_estacion}, ${pe.stock}, ${pe.sellPrice}, ${pe.demand}, ${pe.buyPrice})`
     ).join(",");
     const queryProductosEstaciones = `
@@ -137,9 +138,27 @@ async function insertarBatchStock() {
     try {
         await client.query(queryProductosEstaciones);
     } catch (err) {
-        console.error("Error insertando batch:", err);
+        
+        if (vieneDeError) {
+            console.error("Error sql insertar productosEstaciones:", err);
+            guardarError(productosEstaciones, queryProductosEstaciones);
+        } else {
+            for (const key in lista) {
+                const fila = lista[key];
+                await insertarBatchStock([fila], true);
+            }
+        }
+
     }
     productosEstaciones = [];
+}
+
+function guardarError(productoEstacion, queryProductosEstaciones) {
+    try {
+        fs.writeFileSync('./assets/file.json', JSON.stringify(productoEstacion));
+    } catch (error) {
+        fs.writeFileSync('../assets/file.json', JSON.stringify(productoEstacion));
+    }
 }
 
 async function insertarProductos() {
