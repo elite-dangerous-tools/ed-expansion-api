@@ -39,9 +39,9 @@ CREATE TABLE public.producto_estacion (
 	id_producto varchar NOT NULL,
 	id_estacion int8 NOT NULL,
 	stock int8 DEFAULT 0 NOT NULL,
-	sellprice int8 DEFAULT 0 NOT NULL,
 	buyprice int8 DEFAULT 0 NOT NULL,
 	demand int8 DEFAULT 0 NOT NULL,
+	sellprice int8 DEFAULT 0 NOT NULL,
 	CONSTRAINT producto_estacion_estaciones_fk FOREIGN KEY (id_estacion) REFERENCES public.estaciones(id) ON DELETE SET NULL ON UPDATE SET NULL DEFERRABLE INITIALLY DEFERRED,
 	CONSTRAINT producto_estacion_productos_fk FOREIGN KEY (id_producto) REFERENCES public.productos(id) ON DELETE SET NULL ON UPDATE SET NULL DEFERRABLE INITIALLY DEFERRED
 );

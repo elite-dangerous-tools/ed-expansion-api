@@ -13,7 +13,7 @@ async function buscarEstacionesProducto(sistemaOrigen, distancia, productos, pla
     const query = `
         SELECT
             e."name" as estacion, e."type" as tipo, e.distance as distanciaEstacion,
-            pe.id_producto as producto, pe.sellprice as precio, pe.stock as suministro,
+            pe.id_producto as producto, pe.buyprice as precio, pe.stock as suministro,
             s.nombre as sistema,
             sqrt(pow(s.x - origen.x, 2) + pow(s.y - origen.y, 2) + pow(s.z - origen.z, 2)) AS distanciaSistema
         FROM
