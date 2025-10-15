@@ -186,19 +186,17 @@ function filtrarEstacion(estacion) {
     // // Es un sistema reclamado, guardamos la estación para que detectemos el sistema como ocupado y no libre
     // }
 
-    if (estacion.haveMarket == false) {
+    if (estacion.name.includes("Trailblazer")) {
+        // Los Trailblazer no tienen commodities
+    } else if (estacion.haveMarket == false) {
         return false;
-    }
-    if (estacion.type == "Fleet Carrier") {
+    } else if (estacion.type == "Fleet Carrier") {
         return false;
-    }
-    if (estacion.type == null) {
+    } else if (estacion.type == null) {
         return false;
-    }
-    if (!estacion.commodities || estacion.commodities.length <= 0) {
+    } else if (!estacion.commodities || estacion.commodities.length <= 0) {
         return false;
-    }
-    if (!estacion.systemId64) {
+    } else if (!estacion.systemId64) {
         // No tiene sistema, no podemos guardarlo
         return false;
     }
@@ -214,30 +212,33 @@ function filtrarEstacion(estacion) {
         systemId64: estacion.systemId64
     };
 
-    estacion.commodities.forEach(producto => {
-        let existe = productos.findIndex(fila => fila.id == producto.id) >= 0;
-        if (!existe) {
-            let datosProducto = {
-                id: producto.id,
-                name: escaparComillas(producto.name)
-            };
-            productos.push(datosProducto);
-            productosSinGuardar.push(datosProducto);
-        }
 
-        if (producto.stock > 0 || producto.demand > 0) {
-            productosEstaciones.push({
-                id_producto: producto.id,
-                id_estacion: estacion.id,
+    if (estacion.commodities && estacion.commodities.length > 0) {
+        estacion.commodities.forEach(producto => {
+            let existe = productos.findIndex(fila => fila.id == producto.id) >= 0;
+            if (!existe) {
+                let datosProducto = {
+                    id: producto.id,
+                    name: escaparComillas(producto.name)
+                };
+                productos.push(datosProducto);
+                productosSinGuardar.push(datosProducto);
+            }
 
-                stock: producto.stock,
-                sellPrice: producto.sellPrice,
+            if (producto.stock > 0 || producto.demand > 0) {
+                productosEstaciones.push({
+                    id_producto: producto.id,
+                    id_estacion: estacion.id,
 
-                demand: producto.demand,
-                buyPrice: producto.buyPrice
-            });
-        }
-    });
+                    stock: producto.stock,
+                    sellPrice: producto.sellPrice,
+
+                    demand: producto.demand,
+                    buyPrice: producto.buyPrice
+                });
+            }
+        });
+    }
 
     estaciones.push(datosEstacion);
 
