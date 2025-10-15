@@ -12,7 +12,7 @@ async function buscarEstacionesComprar(sistema, distancia) {
     const distanciaOrigen = parseInt(distancia);
     
     const query = `
-        with sistema_origen as ( select * from sistemas WHERE nombre = 'Arietis Sector PN-T b3-2' ),
+        with sistema_origen as ( select * from sistemas WHERE nombre = '${sistema}' ),
         sistema_destino as (
             SELECT s.nombre, s.systemid64 as id_sistema,
                     sqrt(pow(s.x - o.x, 2) + pow(s.y - o.y, 2) + pow(s.z - o.z, 2)) AS distancia
