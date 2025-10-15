@@ -52,10 +52,10 @@ async function buscarEstacionesVender(sistema) {
 }
 
 function compare(a, b) {
-    if (a.beneficio > b.beneficio) {
+    if (a.beneficio_unidad > b.beneficio_unidad) {
         return -1;
     }
-    if (a.beneficio < b.beneficio) {
+    if (a.beneficio_unidad < b.beneficio_unidad) {
         return 1;
     }
 
@@ -81,13 +81,15 @@ exports.venta_beneficio = async (req, res) => {
             const compras = estaciones_comprar.filter(compra => compra.id_producto == venta.id_producto && venta.sellprice > compra.buyprice);
 
             compras.forEach(compra => {
-                const beneficio = ((venta.sellprice / compra.buyprice) * 100) - 100;
+                const porc_beneficio = ((venta.sellprice / compra.buyprice) * 100) - 100;
+                const beneficio_unidad = venta.sellprice - compra.buyprice;
 
-                if (beneficio >= 100) {
+                if (porc_beneficio >= 100) {
                     let fila = {
                         ...venta,
                         ...compra,
-                        beneficio: beneficio
+                        beneficio_unidad: beneficio_unidad,
+                        porc_beneficio: porc_beneficio
                     }
                     lista.push(fila);
                 }
