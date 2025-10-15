@@ -135,13 +135,15 @@ async function insertarBatchStock(lista = productosEstaciones, vieneDeError=fals
         buyPrice = EXCLUDED.buyPrice
     ;`;
 
+    productosEstaciones = [];
+    
     try {
         await client.query(queryProductosEstaciones);
     } catch (err) {
         
         if (vieneDeError) {
             console.error("Error sql insertar productosEstaciones:", err);
-            guardarError(productosEstaciones, queryProductosEstaciones);
+            guardarError(lista, queryProductosEstaciones);
         } else {
             for (const key in lista) {
                 const fila = lista[key];
@@ -150,7 +152,6 @@ async function insertarBatchStock(lista = productosEstaciones, vieneDeError=fals
         }
 
     }
-    productosEstaciones = [];
 }
 
 function guardarError(productoEstacion, queryProductosEstaciones) {
