@@ -52,8 +52,10 @@ async function descargarYProcesar(req, res) {
                         productosSinGuardar = [];
                     }
 
-                    if (estaciones.length > limiteBatch || productosEstaciones.length > limiteBatch) {
+                    if (estaciones.length > limiteBatch) {
                         await insertarBatchEstaciones();
+                    }
+                    if (productosEstaciones.length > limiteBatch) {
                         await insertarBatchStock();
                     }
 
@@ -67,11 +69,12 @@ async function descargarYProcesar(req, res) {
 
         rl.on("close", async () => {
             // Insertar el último batch si no está vacío
-            if (estaciones.length > 0 || productosEstaciones.length > 0) {
+            if (estaciones.length > 0) {
                 await insertarBatchEstaciones();
+            }
+            if (productosEstaciones.length > 0) {
                 await insertarBatchStock();
             }
-
             
             // Al terminar, actualizamos la vista de productos
             await client.query("REFRESH MATERIALIZED VIEW vista_productos;");
@@ -228,11 +231,13 @@ exports.descargar_estaciones = async (req, res) => {
     const query = `SELECT id from productos `;
     const { rows } = await client.query(query);
     productos = [...rows];
+    console.log("Recuperamos los productos:", productos.length);
 
     // Limpiamos datos antiguos
     await client.query(`
         TRUNCATE TABLE producto_estacion, estaciones
     `);
+    console.log("Borramos estaciones y productos");
 
     // Ejecutar el proceso
     await descargarYProcesar(req, res);
