@@ -203,11 +203,12 @@ function filtrarEstacion(estacion) {
                     id_estacion: estacion.id,
 
                     stock: producto.stock,
-                    sellPrice: producto.sellPrice || null,
+                    sellPrice: producto.sellPrice,
 
                     demand: producto.demand,
-                    buyprice: producto.buyprice || null,
+                    buyPrice: producto.buyPrice,
                 });
+
             }
         });
 
