@@ -115,8 +115,9 @@ async function insertarBatchStock() {
     // Hay filas duplicadas que tenemos que descartar
     productosEstaciones = Array.from(new Map(productosEstaciones.map((pe) => [`${pe.id_producto}-${pe.id_estacion}`, pe])).values());
 
-    const str_producto = `('${pe.id_producto}', ${pe.id_estacion}, ${pe.stock}, ${pe.sellPrice}, ${pe.demand}, ${pe.buyPrice})`;
-    const valoresProductosEstaciones = productosEstaciones.map((pe) => str_producto).join(",");
+    const valoresProductosEstaciones = productosEstaciones.map((pe) => 
+        `('${pe.id_producto}', ${pe.id_estacion}, ${pe.stock}, ${pe.sellPrice}, ${pe.demand}, ${pe.buyPrice})`
+    ).join(",");
     const queryProductosEstaciones = `
         INSERT INTO producto_estacion (id_producto, id_estacion, stock, sellPrice, demand, buyPrice)
         SELECT * FROM (VALUES ${valoresProductosEstaciones}) AS temp(id_producto, id_estacion, stock, sellPrice, demand, buyPrice)
