@@ -205,8 +205,8 @@ function filtrarEstacion(estacion) {
                     stock: producto.stock,
                     sellPrice: producto.sellPrice || null,
 
-                    demand: producto.stock,
-                    buyprice: producto.sellPrice || null,
+                    demand: producto.demand,
+                    buyprice: producto.buyprice || null,
                 });
             }
         });
