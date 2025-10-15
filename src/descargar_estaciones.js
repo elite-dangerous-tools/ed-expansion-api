@@ -130,7 +130,7 @@ async function insertarBatchStock() {
         sellPrice = EXCLUDED.sellPrice,
 
         demand = EXCLUDED.demand,
-        sellPrice = EXCLUDED.sellPrice
+        buyPrice = EXCLUDED.buyPrice
     ;`;
 
     try {
