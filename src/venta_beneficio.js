@@ -51,6 +51,17 @@ async function buscarEstacionesVender(sistema) {
     return rows;
 }
 
+function compare(a, b) {
+    if (a.beneficio > b.beneficio) {
+        return -1;
+    }
+    if (a.beneficio < b.beneficio) {
+        return 1;
+    }
+
+    return 0;
+}
+
 exports.venta_beneficio = async (req, res) => {
     try {
         const { distancia, sistema } = req.query;
@@ -85,7 +96,9 @@ exports.venta_beneficio = async (req, res) => {
 
         });
 
-        res.json(lista);
+        let listaOrdenada = lista.sort(compare);
+
+        res.json(listaOrdenada);
 
     } catch (error) {
         console.log(error);
