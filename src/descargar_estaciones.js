@@ -154,11 +154,17 @@ async function insertarBatchStock(lista = productosEstaciones, vieneDeError=fals
 }
 
 function guardarError(productoEstacion, queryProductosEstaciones) {
-    try {
-        fs.writeFileSync('./assets/file.json', JSON.stringify(productoEstacion));
-    } catch (error) {
-        fs.writeFileSync('../assets/file.json', JSON.stringify(productoEstacion));
+    const estacion = productoEstacion[0];
+    
+    let ruta = "./assets/";
+    if (!fs.existsSync(ruta)) {
+        ruta = "../assets/";
     }
+
+    try {
+        fs.writeFileSync('./assets/' + estacion.name + '.sql', queryProductosEstaciones);
+        fs.writeFileSync('./assets/' + estacion.name + '.json', JSON.stringify(productoEstacion));
+    } catch (error) {}
 }
 
 async function insertarProductos() {
