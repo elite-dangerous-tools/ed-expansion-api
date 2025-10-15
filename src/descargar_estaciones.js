@@ -19,7 +19,7 @@ let estaciones = [];
 let productosEstaciones = [];
 
 // Inserción en lotes
-const limiteBatch = 1000;
+const limiteBatch = 5000;
 
 // Función para escapar comillas en nombres de estaciones
 function escaparComillas(nombre) {
