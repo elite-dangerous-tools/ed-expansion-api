@@ -2,7 +2,7 @@ const https = require("https");
 const zlib = require("zlib");
 const readline = require("readline");
 const { Client } = require("pg");
-const fs = require('fs');
+const fs = require("fs");
 
 const { db_config } = require("./db_config");
 
@@ -32,12 +32,12 @@ function escaparComillas(nombre) {
 // Descargar y procesar el JSON
 async function descargarYProcesar(req, res) {
     console.log("Descargando archivo...");
-    const request = https.get(estacionesUrl, (response) => {
+    const request = https.get(estacionesUrl, response => {
         const gunzip = zlib.createGunzip();
         const rl = readline.createInterface({ input: response.pipe(gunzip) });
 
         console.log("Leyendo archivo...");
-        rl.on("line", async (line) => {
+        rl.on("line", async line => {
             if (line.trim() === "[" || line.trim() === "]") return; // Ignorar corchetes
 
             try {
@@ -53,7 +53,7 @@ async function descargarYProcesar(req, res) {
                         productosSinGuardar = [];
                     }
 
-                    if ((estaciones.length + productosEstaciones.length) > limiteBatch) {
+                    if (estaciones.length + productosEstaciones.length > limiteBatch) {
                         await insertarBatchEstaciones();
                         await insertarBatchStock();
                     }
@@ -74,12 +74,11 @@ async function descargarYProcesar(req, res) {
             if (productosEstaciones.length > 0) {
                 await insertarBatchStock();
             }
-            
+
             // Al terminar, actualizamos la vista de productos
             await client.query("REFRESH MATERIALIZED VIEW vista_productos;");
             client.end();
 
-            
             const mensaje = "Proceso de descargar estaciones y precios completado";
             console.log(mensaje);
             if (res) {
@@ -87,14 +86,14 @@ async function descargarYProcesar(req, res) {
             }
         });
 
-        rl.on("error", (err) => console.error("Error leyendo archivo:", err));
+        rl.on("error", err => console.error("Error leyendo archivo:", err));
     });
 
-    request.on("error", (err) => console.error("Error descargando archivo:", err));
+    request.on("error", err => console.error("Error descargando archivo:", err));
 }
 
 async function insertarBatchEstaciones() {
-    const valoresEstaciones = estaciones.map((est) => `(${est.id}, '${est.name}', ${est.distanceToArrival}, '${est.type}', ${est.systemId64})`).join(",");
+    const valoresEstaciones = estaciones.map(est => `(${est.id}, '${est.name}', ${est.distanceToArrival}, '${est.type}', ${est.systemId64})`).join(",");
 
     const queryEstaciones = `
         INSERT INTO estaciones (id, name, distance, type, systemId64)
@@ -113,13 +112,13 @@ async function insertarBatchEstaciones() {
     estaciones = [];
 }
 
-async function insertarBatchStock(lista = productosEstaciones, vieneDeError=false) {
+async function insertarBatchStock(lista = productosEstaciones, vieneDeError = false) {
     // Hay filas duplicadas que tenemos que descartar
-    let mapaProductosEstaciones = Array.from(new Map(lista.map((pe) => [`${pe.id_producto}-${pe.id_estacion}`, pe])).values());
+    let mapaProductosEstaciones = Array.from(new Map(lista.map(pe => [`${pe.id_producto}-${pe.id_estacion}`, pe])).values());
 
-    const valoresProductosEstaciones = mapaProductosEstaciones.map((pe) => 
-        `('${pe.id_producto}', ${pe.id_estacion}, ${pe.stock}, ${pe.sellPrice}, ${pe.demand}, ${pe.buyPrice})`
-    ).join(",");
+    const valoresProductosEstaciones = mapaProductosEstaciones
+        .map(pe => `('${pe.id_producto}', ${pe.id_estacion}, ${pe.stock}, ${pe.sellPrice}, ${pe.demand}, ${pe.buyPrice})`)
+        .join(",");
     const queryProductosEstaciones = `
         INSERT INTO producto_estacion (id_producto, id_estacion, stock, sellPrice, demand, buyPrice)
         SELECT * FROM (VALUES ${valoresProductosEstaciones}) AS temp(id_producto, id_estacion, stock, sellPrice, demand, buyPrice)
@@ -136,11 +135,10 @@ async function insertarBatchStock(lista = productosEstaciones, vieneDeError=fals
     ;`;
 
     productosEstaciones = [];
-    
+
     try {
         await client.query(queryProductosEstaciones);
     } catch (err) {
-        
         if (vieneDeError) {
             console.error("Error sql insertar productosEstaciones:", err);
             guardarError(lista, queryProductosEstaciones);
@@ -150,26 +148,25 @@ async function insertarBatchStock(lista = productosEstaciones, vieneDeError=fals
                 await insertarBatchStock([fila], true);
             }
         }
-
     }
 }
 
 function guardarError(productoEstacion, queryProductosEstaciones) {
     const estacion = productoEstacion[0];
-    
+
     let ruta = "./assets/";
     if (!fs.existsSync(ruta)) {
         ruta = "../assets/";
     }
 
     try {
-        fs.writeFileSync('./assets/' + estacion.name + '.sql', queryProductosEstaciones);
-        fs.writeFileSync('./assets/' + estacion.name + '.json', JSON.stringify(productoEstacion));
+        fs.writeFileSync("./assets/" + estacion.name + ".sql", queryProductosEstaciones);
+        fs.writeFileSync("./assets/" + estacion.name + ".json", JSON.stringify(productoEstacion));
     } catch (error) {}
 }
 
 async function insertarProductos() {
-    const valores = productosSinGuardar.map((prod) => `('${prod.id}', '${prod.name}')`).join(",");
+    const valores = productosSinGuardar.map(prod => `('${prod.id}', '${prod.name}')`).join(",");
 
     const query = `
         INSERT INTO productos(id, name)
@@ -185,61 +182,62 @@ async function insertarProductos() {
 }
 
 function filtrarEstacion(estacion) {
-    // Escapar el nombre de la estación
-    const nombreEstacion = escaparComillas(estacion.name);
+    // if (nombreEstacion.includes("Orbital Construction Site") || nombreEstacion.includes("System Colonisation Ship")) {
+    // // Es un sistema reclamado, guardamos la estación para que detectemos el sistema como ocupado y no libre
+    // }
 
-    if (nombreEstacion.includes("Orbital Construction Site") || nombreEstacion.includes("System Colonisation Ship")) {
-        // Es un sistema reclamado, guardamos la estación para que detectemos el sistema como ocupado y no libre
-    } else if (estacion.type == "Fleet Carrier") {
-        // No guardamos los carriers
+    if (estacion.haveMarket == false) {
         return false;
-    } else if (!estacion.systemId64) {
+    }
+    if (estacion.type == "Fleet Carrier") {
+        return false;
+    }
+    if (estacion.type == null) {
+        return false;
+    }
+    if (!estacion.commodities || estacion.commodities.length <= 0) {
+        return false;
+    }
+    if (!estacion.systemId64) {
         // No tiene sistema, no podemos guardarlo
         return false;
     }
 
-    if (estacion.type == null || estacion.type == undefined) {
-        estacion.type == "-";
-    }
+    // Escapar el nombre de la estación
+    const nombreEstacion = escaparComillas(estacion.name);
 
     const datosEstacion = {
         id: estacion.id,
         name: nombreEstacion,
         type: estacion.type,
         distanceToArrival: estacion.distanceToArrival,
-        systemId64: estacion.systemId64,
+        systemId64: estacion.systemId64
     };
 
+    estacion.commodities.forEach(producto => {
+        let existe = productos.findIndex(fila => fila.id == producto.id) >= 0;
+        if (!existe) {
+            let datosProducto = {
+                id: producto.id,
+                name: escaparComillas(producto.name)
+            };
+            productos.push(datosProducto);
+            productosSinGuardar.push(datosProducto);
+        }
 
-    if (estacion.commodities && estacion.commodities.length > 0) {
-        
-        estacion.commodities.forEach((producto) => {
-            let existe = productos.findIndex((fila) => fila.id == producto.id) >= 0;
-            if (!existe) {
-                let datosProducto = {
-                    id: producto.id,
-                    name: escaparComillas(producto.name),
-                };
-                productos.push(datosProducto);
-                productosSinGuardar.push(datosProducto);
-            }
+        if (producto.stock > 0 || producto.demand > 0) {
+            productosEstaciones.push({
+                id_producto: producto.id,
+                id_estacion: estacion.id,
 
-            if (producto.stock > 0 || producto.demand > 0) {
-                productosEstaciones.push({
-                    id_producto: producto.id,
-                    id_estacion: estacion.id,
+                stock: producto.stock,
+                sellPrice: producto.sellPrice,
 
-                    stock: producto.stock,
-                    sellPrice: producto.sellPrice,
-
-                    demand: producto.demand,
-                    buyPrice: producto.buyPrice,
-                });
-
-            }
-        });
-
-    }
+                demand: producto.demand,
+                buyPrice: producto.buyPrice
+            });
+        }
+    });
 
     estaciones.push(datosEstacion);
 
@@ -251,7 +249,7 @@ function filtrarEstacion(estacion) {
     return true;
 }
 
-exports.descargar_estaciones = async (req, res, cron=false) => {
+exports.descargar_estaciones = async (req, res, cron = false) => {
     const query = `SELECT id from productos `;
     const { rows } = await client.query(query);
     productos = [...rows];
