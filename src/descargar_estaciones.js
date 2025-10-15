@@ -18,7 +18,7 @@ let estaciones = [];
 let productosEstaciones = [];
 
 // Inserción en lotes
-const limiteBatch = 5000;
+const limiteBatch = 1000;
 
 // Función para escapar comillas en nombres de estaciones
 function escaparComillas(nombre) {
@@ -52,7 +52,7 @@ async function descargarYProcesar(req, res) {
                         productosSinGuardar = [];
                     }
 
-                    if (productosEstaciones.length > limiteBatch) {
+                    if ((estaciones.length + productosEstaciones.length) > limiteBatch) {
                         await insertarBatchEstaciones();
                         await insertarBatchStock();
                     }
