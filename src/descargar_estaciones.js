@@ -191,12 +191,16 @@ function filtrarEstacion(estacion) {
                 productosSinGuardar.push(datosProducto);
             }
 
-            if (producto.stock > 0) {
+            if (producto.stock > 0 || producto.demand > 0) {
                 productosEstaciones.push({
                     id_producto: producto.id,
                     id_estacion: estacion.id,
+
                     stock: producto.stock,
                     sellPrice: producto.sellPrice,
+
+                    demand: producto.stock,
+                    buyprice: producto.sellPrice,
                 });
             }
         });
