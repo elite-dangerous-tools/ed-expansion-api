@@ -52,10 +52,8 @@ async function descargarYProcesar(req, res) {
                         productosSinGuardar = [];
                     }
 
-                    if (estaciones.length > limiteBatch) {
-                        await insertarBatchEstaciones();
-                    }
                     if (productosEstaciones.length > limiteBatch) {
+                        await insertarBatchEstaciones();
                         await insertarBatchStock();
                     }
 
