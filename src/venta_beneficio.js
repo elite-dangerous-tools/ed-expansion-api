@@ -28,7 +28,7 @@ async function buscarEstacionesComprar(sistema, distancia) {
         join producto_estacion pe on pe.id_estacion = e.id
         where sd.distancia <= ${distanciaOrigen}
         and sd.distancia > 0
-        and pe.stock > 0
+        and pe.stock >= 1000
     `;
 
     const { rows } = await client.query(query);
