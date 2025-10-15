@@ -44,7 +44,7 @@ CREATE TABLE public.producto_estacion (
 	CONSTRAINT producto_estacion_productos_fk FOREIGN KEY (id_producto) REFERENCES public.productos(id) ON DELETE SET NULL ON UPDATE SET NULL DEFERRABLE INITIALLY DEFERRED
 );
 CREATE UNIQUE INDEX producto_estacion_id_producto_idx ON public.producto_estacion USING btree (id_producto, id_estacion);
-
+CREATE INDEX producto_estacion_id_estacion_idx ON public.producto_estacion (id_estacion);
 
 
 
