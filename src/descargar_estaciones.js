@@ -225,17 +225,19 @@ function filtrarEstacion(estacion) {
     return true;
 }
 
-exports.descargar_estaciones = async (req, res) => {
+exports.descargar_estaciones = async (req, res, cron=false) => {
     const query = `SELECT id from productos `;
     const { rows } = await client.query(query);
     productos = [...rows];
     console.log("Recuperamos los productos:", productos.length);
 
     // Limpiamos datos antiguos
-    await client.query(`
-        TRUNCATE TABLE producto_estacion, estaciones
-    `);
-    console.log("Borramos estaciones y productos");
+    if (cron) {
+        await client.query(`
+            TRUNCATE TABLE producto_estacion, estaciones
+        `);
+        console.log("Borramos estaciones y productos");
+    }
 
     // Ejecutar el proceso
     await descargarYProcesar(req, res);
