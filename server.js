@@ -1,5 +1,5 @@
 // const { descargar_sistemas } = require('./src/descargar_sistemas');
-const { descargar_estaciones } = require("./src/descargar_estaciones");
+// const { descargar_estaciones } = require("./src/descargar_estaciones");
 const { sistemas_alcance } = require("./src/sistemas_alcance");
 const { estaciones_producto } = require("./src/estaciones_producto");
 const { venta_beneficio } = require("./src/venta_beneficio");
@@ -18,15 +18,15 @@ const allowedOrigins = ["http://localhost:4000", "https://storm-seekers.gitlab.i
 app.use(cors({ origin: allowedOrigins }));
 
 // Programa una tarea para que se ejecute todos los días a las 6 a.m.
-cron.schedule(
-    "0 6 * * *",
-    () => {
-        descargar_estaciones(undefined, undefined, true);
-    },
-    {
-        timezone: "Europe/Madrid"
-    }
-);
+// cron.schedule(
+//     "0 6 * * *",
+//     () => {
+//         descargar_estaciones(undefined, undefined, true);
+//     },
+//     {
+//         timezone: "Europe/Madrid"
+//     }
+// );
 
 // Ruta de inicio
 app.get("/", (req, res) => {
