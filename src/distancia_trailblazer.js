@@ -1,6 +1,6 @@
 async function solicitarFiltro(sistema) {
     const parametros = {
-        filters: { name: { value: "Trailblazer" } },
+        filters: { name: { value: "Trailblazer" }, type: { value: ["Planetary Outpost", "Mega ship"] } },
         sort: [{ distance: { direction: "asc" } }],
         size: 100,
         page: 0,
@@ -46,7 +46,7 @@ exports.distancia_trailblazer = async (req, res) => {
                 sistema: fila.system_name,
                 estacion: fila.name,
                 distanciaestacion: fila.distance_to_arrival,
-                distanciasistema: fila.distance,
+                distanciasistema: fila.distance
             });
         });
 
