@@ -1,1 +1,0 @@
-node 2_descargar_estaciones.js

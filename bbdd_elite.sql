@@ -60,3 +60,12 @@ JOIN (
     FROM producto_estacion
     GROUP BY id_producto
 ) pe ON p.id = pe.id_producto;
+
+
+
+CREATE TABLE public.commodities (
+	id varchar NOT NULL,
+	nombre varchar NULL,
+	tipo varchar NOT NULL,
+	CONSTRAINT commodities_pk PRIMARY KEY (id)
+);
