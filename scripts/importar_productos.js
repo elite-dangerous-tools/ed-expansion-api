@@ -8,8 +8,6 @@ const client = new Client(db_config);
 client.connect();
 client.setTypeParser(20, val => parseInt(val)); // Para BIGINT
 
-const ruta = "../assets/prod_";
-
 // Función para escapar comillas en nombres de estaciones
 function escaparComillas(nombre) {
     if (nombre) {
@@ -81,7 +79,7 @@ async function importar() {
     await client.query(query);
 }
 
-async function traducir() {
+async function traducir(ruta, mercancia_rara=false) {
     const ruta_en = ruta + "en.html";
     const ruta_es = ruta + "es.html";
 
@@ -90,8 +88,8 @@ async function traducir() {
 
     let productos = [];
     for (const key in prods_en) {
-        const producto_en = prods_en[key];
-        let producto_es = prods_es[key];
+        const producto_en = escaparComillas(prods_en[key]);
+        let producto_es = escaparComillas(prods_es[key]);
 
         if (producto_en == "Steel") {
             producto_es = "Acero";
@@ -100,10 +98,15 @@ async function traducir() {
         productos.push(`('${producto_en}', '${producto_es}')`);
     }
 
+    let set_extra = "";
+    if (mercancia_rara) {
+        set_extra = " , tipo='rare' ";
+    }
 
     const valores = productos.join(",");
     const query = `UPDATE commodities
         SET nombre = f.nombre
+        ${set_extra}
         FROM
             ( VALUES ${valores}
             ) as f (id, nombre)
@@ -112,8 +115,10 @@ async function traducir() {
 }
 
 exports.importar_productos = async (req, res) => {
-    await importar();
-    await traducir();
+    // await importar();
+    
+    // await traducir("../assets/prod_");
+    await traducir("../assets/rare_", true);
 
     if (res) {
         res.json({ message: "ok" });
