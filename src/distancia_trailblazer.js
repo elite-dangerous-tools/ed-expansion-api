@@ -1,38 +1,56 @@
+async function solicitarFiltro(sistema) {
+    const parametros = {
+        filters: { name: { value: "Trailblazer" } },
+        sort: [{ distance: { direction: "asc" } }],
+        size: 100,
+        page: 0,
+        reference_system: sistema
+    };
 
-const { Client } = require("pg");
-const { db_config } = require("./db_config");
+    let response = await fetch("https://spansh.co.uk/api/stations/search/save", {
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+        },
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(parametros)
+    });
 
-const client = new Client(db_config);
-client.connect();
-client.setTypeParser(20, val => parseInt(val));  // Para BIGINT
+    let respuesta = await response.json();
 
-async function buscarDistanciaTrailblazer(sistema) {
-    const query = `
-            SELECT
-                s.nombre AS sistema,
-	            e.name AS estacion,
-                e.distance AS distanciaEstacion,
-                sqrt(pow(s.x - origen.x, 2) + pow(s.y - origen.y, 2) + pow(s.z - origen.z, 2)) AS distanciaSistema
-            FROM
-                sistemas AS s
-	            JOIN estaciones AS e ON (s.systemid64 = e.systemid64),
-                (SELECT systemid64, nombre, x, y, z FROM sistemas WHERE nombre = '${sistema}') AS origen
-            WHERE e.name like 'Trailblazer%'
-            ORDER BY distanciaSistema
-    `;
+    return respuesta.search_reference;
+}
 
-    const { rows } = await client.query(query);
-    
-    return rows;
+async function recuperarFiltro(busqueda) {
+    let response = await fetch("https://spansh.co.uk/api/stations/search/recall/" + busqueda, {
+        method: "GET",
+        mode: "no-cors"
+    });
+
+    let respuesta = await response.json();
+
+    return respuesta.results;
 }
 
 exports.distancia_trailblazer = async (req, res) => {
     try {
         const { sistema } = req.query;
 
-        let listaTrailblazers = await buscarDistanciaTrailblazer(sistema);
-        res.json(listaTrailblazers);
+        let busqueda = await solicitarFiltro(sistema);
+        let resultado = await recuperarFiltro(busqueda);
 
+        let lista_trailblazers = [];
+
+        resultado.forEach(fila => {
+            lista_trailblazers.push({
+                sistema: fila.system_name,
+                estacion: fila.name,
+                distanciaEstacion: fila.distance_to_arrival,
+                distanciaSistema: fila.distance,
+            });
+        });
+
+        res.json(lista_trailblazers);
     } catch (error) {
         console.log(error);
         res.json({ message: "Fallo crítico al buscar Trailblazers" });
