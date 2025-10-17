@@ -45,8 +45,8 @@ exports.distancia_trailblazer = async (req, res) => {
             lista_trailblazers.push({
                 sistema: fila.system_name,
                 estacion: fila.name,
-                distanciaEstacion: fila.distance_to_arrival,
-                distanciaSistema: fila.distance,
+                distanciaestacion: fila.distance_to_arrival,
+                distanciasistema: fila.distance,
             });
         });
 
