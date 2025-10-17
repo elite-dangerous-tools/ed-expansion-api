@@ -7,8 +7,10 @@ client.connect();
 client.setTypeParser(20, val => parseInt(val));  // Para BIGINT
 
 async function buscarProductos() {
-    // const query = `SELECT * FROM productos`;
-    const query = `SELECT * FROM vista_productos`;
+    const query = `
+        SELECT id, COALESCE(nombre, id) AS nombre, tipo
+        FROM commodities
+    `;
 
     const { rows } = await client.query(query);
     
