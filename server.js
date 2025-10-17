@@ -1,10 +1,7 @@
-// const { descargar_sistemas } = require('./src/descargar_sistemas');
-// const { descargar_estaciones } = require("./src/descargar_estaciones");
 const { sistemas_alcance } = require("./src/sistemas_alcance");
-const { estaciones_producto } = require("./src/estaciones_producto");
-const { venta_beneficio } = require("./src/venta_beneficio");
 const { productos } = require("./src/productos");
 const { distancia_trailblazer } = require("./src/distancia_trailblazer");
+const { estaciones } = require("./src/estaciones");
 
 const cron = require("node-cron");
 const cors = require("cors");
@@ -36,10 +33,10 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/sistemas_alcance", sistemas_alcance);
-app.get("/api/estaciones_producto", estaciones_producto);
-app.get("/api/productos", productos);
-app.get("/api/venta_beneficio", venta_beneficio);
 app.get("/api/distancia_trailblazer", distancia_trailblazer);
+app.get("/api/productos", productos);
+app.get("/api/estaciones", estaciones);
+
 
 app.listen(port, () => {
     console.log(`Servidor corriendo en http://localhost:${port}`);
