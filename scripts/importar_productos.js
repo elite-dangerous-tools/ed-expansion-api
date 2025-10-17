@@ -110,14 +110,14 @@ async function traducir(ruta, mercancia_rara=false) {
         FROM
             ( VALUES ${valores}
             ) as f (id, nombre)
-        WHERE commodities.id = f.id `;
+        WHERE lower(commodities.id) = lower(f.id) `;
     await client.query(query);
 }
 
 exports.importar_productos = async (req, res) => {
-    // await importar();
+    await importar();
     
-    // await traducir("../assets/prod_");
+    await traducir("../assets/prod_");
     await traducir("../assets/rare_", true);
 
     if (res) {
