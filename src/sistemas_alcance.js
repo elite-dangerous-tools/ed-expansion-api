@@ -36,6 +36,30 @@ async function recuperarFiltro(busqueda, tipo) {
     return respuesta.results;
 }
 
+
+async function recuperarBusqueda(sistema, distancia, tipo) {
+    const parametros = {
+        filters: { distance: { min: 0, max: distancia } },
+        // sort: [],
+        size: 500,
+        page: 0,
+        reference_system: sistema
+    };
+
+    let response = await fetch("https://spansh.co.uk/api/" + tipo + "/search/", {
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+        },
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(parametros)
+    });
+
+    let respuesta = await response.json();
+
+    return respuesta.results;
+}
+
 exports.sistemas_alcance = async (req, res) => {
     try {
         const { distancia, sistema } = req.query;
@@ -46,12 +70,8 @@ exports.sistemas_alcance = async (req, res) => {
             return;
         }
 
-        // reutilizamos el filtro de busqueda
-        let busqueda = await solicitarFiltro(sistema, distancia, 'systems');
-
-        let resultadoSistemas = await recuperarFiltro(busqueda, 'systems');
-        let resultadoCuerpos = await recuperarFiltro(busqueda, 'bodies');
-
+        let resultadoSistemas = await recuperarBusqueda(sistema, distancia, 'systems');
+        let resultadoCuerpos = await recuperarBusqueda(sistema, distancia, 'bodies');
         
         resultadoSistemas.forEach(sistema => {
             delete sistema.synthesis_recipes;
