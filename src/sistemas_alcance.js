@@ -1,4 +1,4 @@
-async function solicitarFiltro(sistema, distancia, tipo="systems") {
+async function solicitarFiltro(sistema, distancia, tipo) {
     const parametros = {
         filters: { distance: { min: 0, max: distancia } },
         // sort: [],
@@ -21,7 +21,7 @@ async function solicitarFiltro(sistema, distancia, tipo="systems") {
     return respuesta.search_reference;
 }
 
-async function recuperarFiltro(busqueda, tipo="systems") {
+async function recuperarFiltro(busqueda, tipo) {
     let response = await fetch("https://spansh.co.uk/api/" + tipo + "/search/recall/" + busqueda, {
         method: "GET",
         mode: "no-cors"
@@ -45,19 +45,32 @@ exports.sistemas_alcance = async (req, res) => {
             res.json([]);
             return;
         }
-        
-        // tipo: recuperamos systems, pero falta bodies (para controlar anillos y cinturones)
-        let busqueda = await solicitarFiltro(sistema, distancia);
-        let resultado = await recuperarFiltro(busqueda);
 
-        resultado.forEach(fila => {
-            delete fila.synthesis_recipes;
-            delete fila.power_conflicts;
-            delete fila.stations;
-            delete fila.minor_faction_presences;
+        // reutilizamos el filtro de busqueda
+        let busqueda = await solicitarFiltro(sistema, distancia, 'systems');
+
+        let resultadoSistemas = await recuperarFiltro(busqueda, 'systems');
+        let resultadoCuerpos = await recuperarFiltro(busqueda, 'bodies');
+
+        
+        resultadoSistemas.forEach(sistema => {
+            delete sistema.synthesis_recipes;
+            delete sistema.power_conflicts;
+            delete sistema.stations;
+            delete sistema.minor_faction_presences;
+
+            let cuerpos = resultadoCuerpos.filter(c => c.system_id64 == sistema.id64);
+            cuerpos.forEach(cuerpo => {
+                delete cuerpo.materials;
+                delete cuerpo.parents;
+                delete cuerpo.synthesis_recipes;
+            });
+
+            delete sistema.bodies; // No tienen tanta información
+            sistema.bodies = cuerpos;
         });
 
-        res.json(resultado);
+        res.json(resultadoSistemas);
     } catch (error) {
         console.log(error);
         res.json({ message: "Fallo crítico al buscar sistemas al alcance" });
