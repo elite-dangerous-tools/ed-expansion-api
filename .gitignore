@@ -63,5 +63,5 @@ typings/
 # node lock
 *.lock
 
-assets/*.json
+assets/*.json*
 assets/*.html
