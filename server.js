@@ -2,6 +2,7 @@ const { sistemas_alcance } = require("./src/sistemas_alcance");
 const { productos } = require("./src/productos");
 const { distancia_trailblazer } = require("./src/distancia_trailblazer");
 const { estaciones } = require("./src/estaciones");
+const { beneficio } = require("./src/beneficio");
 
 const cron = require("node-cron");
 const cors = require("cors");
@@ -36,6 +37,7 @@ app.get("/api/sistemas_alcance", sistemas_alcance);
 app.get("/api/distancia_trailblazer", distancia_trailblazer);
 app.get("/api/productos", productos);
 app.get("/api/estaciones", estaciones);
+app.get("/api/beneficio", beneficio);
 
 
 app.listen(port, () => {
