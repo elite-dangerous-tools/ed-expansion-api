@@ -1,5 +1,3 @@
-let listaGrandesBeneficios = [];
-
 const suministroMinimo = 1000;
 const beneficioMinimo = 1000;
 
@@ -63,7 +61,8 @@ async function recuperarBusqueda(sistema, distancia, plataforma, planetaria) {
     return respuestas;
 }
 
-function guardarProductoCompraVenta(estacionVender, estacionComprar, productoVender, productoComprar, beneficio) {
+function guardarProductoCompraVenta(estacionVender, estacionComprar, productoVender, productoComprar, beneficio, listaGrandesBeneficios) {
+    
     listaGrandesBeneficios.push({
         sistemaVender: estacionVender.system_name,
         estacionVender: estacionVender.name,
@@ -86,9 +85,10 @@ function guardarProductoCompraVenta(estacionVender, estacionComprar, productoVen
 
         beneficio: beneficio
     });
+    
 }
 
-function comprobarCompras(estacionVender, productoVender, estacionComprar) {
+function comprobarCompras(estacionVender, productoVender, estacionComprar, listaGrandesBeneficios) {
     let productoComprar = estacionComprar.market.find(pc => pc.commodity == productoVender.commodity);
     if (!productoComprar) {
         return;
@@ -96,29 +96,29 @@ function comprobarCompras(estacionVender, productoVender, estacionComprar) {
 
     let beneficio = productoVender.sell_price - productoComprar.buy_price;
     if (beneficio >= beneficioMinimo && productoComprar.supply >= suministroMinimo) {
-        guardarProductoCompraVenta(estacionVender, estacionComprar, productoVender, productoComprar, beneficio)
+        guardarProductoCompraVenta(estacionVender, estacionComprar, productoVender, productoComprar, beneficio, listaGrandesBeneficios);
     }
 }
 
-function comprobarVenta(estacionVender, productoVender, estacionesComprar) {
+function comprobarVenta(estacionVender, productoVender, estacionesComprar, listaGrandesBeneficios) {
     if (productoVender.category == "Minerals") {
         return;
     }
 
     estacionesComprar.forEach(estacionComprar => {
-        comprobarCompras(estacionVender, productoVender, estacionComprar);
+        comprobarCompras(estacionVender, productoVender, estacionComprar, listaGrandesBeneficios);
     });
 }
 
-function comprobarMercado(estacionVender, estacionesComprar) {
+function comprobarMercado(estacionVender, estacionesComprar, listaGrandesBeneficios) {
     estacionVender.market.forEach(productoVender => {
-        comprobarVenta(estacionVender, productoVender, estacionesComprar);
+        comprobarVenta(estacionVender, productoVender, estacionesComprar, listaGrandesBeneficios);
     });
 }
 
-function comprobarVentas(estacionesVender, estacionesComprar) {
+function comprobarVentas(estacionesVender, estacionesComprar, listaGrandesBeneficios) {
     estacionesVender.forEach(estacionVender => {
-        comprobarMercado(estacionVender, estacionesComprar);
+        comprobarMercado(estacionVender, estacionesComprar, listaGrandesBeneficios);
     });
 }
 
@@ -190,7 +190,8 @@ exports.beneficio = async (req, res) => {
             }
         });
 
-        comprobarVentas(estacionesVender, estacionesComprar);
+        let listaGrandesBeneficios = [];
+        comprobarVentas(estacionesVender, estacionesComprar, listaGrandesBeneficios);
 
         listaGrandesBeneficios.sort((a, b) => {
             if (a.beneficio > b.beneficio) {
