@@ -77,11 +77,12 @@ function guardarProductoCompraVenta(estacionVender, estacionComprar, productoVen
         categoria: productoVender.category,
 
         estacionCompra_precio_compra: productoComprar.buy_price,
-        estacionCompra_precio_venta: productoComprar.sell_price,
+        // estacionCompra_precio_venta: productoComprar.sell_price,
         estacionCompra_suministro: productoComprar.supply,
 
-        estacionVenta_precio_compra: productoVender.buy_price,
+        // estacionVenta_precio_compra: productoVender.buy_price,
         estacionVenta_precio_venta: productoVender.sell_price,
+        estacionVenta_suministro: productoVender.demand,
 
         beneficio: beneficio
     });
