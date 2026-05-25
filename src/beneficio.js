@@ -2,6 +2,7 @@ const { recuperarBusqueda } = require("./spansh");
 
 const suministroMinimo = 1000;
 const beneficioMinimo = 1000;
+const diasAntiguedadPrecioMaximo = 7;
 
 
 async function prepararBusqueda(sistema, distancia, plataforma, planetaria) {
@@ -144,7 +145,7 @@ exports.beneficio = async (req, res) => {
             const horas = Math.floor(minutos / 60);
             const dias = Math.floor(horas / 24);
 
-            if (dias > 7) {
+            if (dias > diasAntiguedadPrecioMaximo) {
                 return;
             }
 
