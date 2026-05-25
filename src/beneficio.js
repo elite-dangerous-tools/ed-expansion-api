@@ -1,15 +1,16 @@
+const { recuperarBusqueda } = require("./spansh");
+
 const suministroMinimo = 1000;
 const beneficioMinimo = 1000;
 
-async function llamadaBusqueda(sistema, distancia, plataforma, planetaria, pagina = 0) {
+
+async function prepararBusqueda(sistema, distancia, plataforma, planetaria) {
     const parametros = {
         filters: {
             distance: { min: 0, max: distancia },
             has_market: { value: true }
         },
         sort: [{ distance: { direction: "asc" } }],
-        size: 500,
-        page: pagina,
         reference_system: sistema
     };
 
@@ -25,41 +26,11 @@ async function llamadaBusqueda(sistema, distancia, plataforma, planetaria, pagin
         parametros.filters.is_planetary = { value: false };
     }
 
-    let response = await fetch("https://spansh.co.uk/api/stations/search/", {
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
-        },
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify(parametros)
-    });
-
-    let respuesta = await response.json();
+    let respuesta = await recuperarBusqueda(parametros, "stations");
 
     return respuesta;
 }
 
-async function recuperarBusqueda(sistema, distancia, plataforma, planetaria) {
-    let repetir = true;
-    let pagina = 0;
-
-    let respuestas = [];
-
-    while (repetir) {
-        let peticion = await llamadaBusqueda(sistema, distancia, plataforma, planetaria, pagina);
-
-        if (peticion.count > 500 && peticion.results.length == 500) {
-            repetir = true;
-            pagina++;
-        } else {
-            repetir = false;
-        }
-
-        respuestas = respuestas.concat(peticion.results);
-    }
-
-    return respuestas;
-}
 
 function guardarProductoCompraVenta(estacionVender, estacionComprar, productoVender, productoComprar, beneficio, listaGrandesBeneficios) {
     
@@ -81,7 +52,7 @@ function guardarProductoCompraVenta(estacionVender, estacionComprar, productoVen
 
         // estacionVenta_precio_compra: productoVender.buy_price,
         estacionVenta_precio_venta: productoVender.sell_price,
-        estacionVenta_suministro: productoVender.demand,
+        estacionVenta_demanda: productoVender.demand,
 
         beneficio: beneficio
     });
@@ -125,22 +96,29 @@ function comprobarVentas(estacionesVender, estacionesComprar, listaGrandesBenefi
 exports.beneficio = async (req, res) => {
     try {
         const { sistema, distancia, plataforma, planetaria } = req.query;
-        // http://localhost:5000/api/beneficio?sistema=Arietis%20Sector%20PN-T%20b3-2&distancia=10&planetaria=0&plataforma=G
 
         if (distancia > 150) {
             // No permitimos tanta distancia
-            res.json([]);
-            return;
+            return res.json({
+                "error": "No se permite tanta distancia"
+            });
         }
 
-        let respuesta = await recuperarBusqueda(sistema, distancia, plataforma, planetaria);
+        let respuesta = await prepararBusqueda(sistema, distancia, plataforma, planetaria);
+        if (!respuesta) {
+            return res.json({
+                "error": "No se han encontrado estaciones"
+            });
+        }
 
         let estacionesVender = [];
         let estacionesComprar = [];
-
         const ahora = new Date();
 
         respuesta.forEach(estacion => {
+            if (!estacion) {
+                return;
+            }
             if (estacion.type && estacion.type.includes("Construction Depot")) {
                 return;
             }
@@ -157,6 +135,7 @@ exports.beneficio = async (req, res) => {
                 return;
             }
 
+            // console.log(estacion.name, estacion.system_name, estacion.distance_to_arrival, estacion.distance);
             let fecha_actualizacion = new Date(estacion.updated_at);
             let diferenciaEnMilisegundos = ahora.getTime() - fecha_actualizacion.getTime();
 
