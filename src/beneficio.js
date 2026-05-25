@@ -76,6 +76,9 @@ function comprobarVenta(estacionVender, productoVender, estacionesComprar, lista
     if (productoVender.category == "Minerals") {
         return;
     }
+    if (productoVender.category == "Metals") { // No está claro si esto es correcto
+        return;
+    }
 
     estacionesComprar.forEach(estacionComprar => {
         comprobarCompras(estacionVender, productoVender, estacionComprar, listaGrandesBeneficios);
