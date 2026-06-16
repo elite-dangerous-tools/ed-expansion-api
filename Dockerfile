@@ -5,8 +5,8 @@ COPY . .
 
 RUN yarn --prod
 
-ENV UV_THREADPOOL_SIZE=2
-ENV NODE_OPTIONS="--max-old-space-size=64"
+ENV UV_THREADPOOL_SIZE=1
+ENV NODE_OPTIONS="--max-old-space-size=48"
 ENV NODE_ENV=production
 
 EXPOSE 5000
