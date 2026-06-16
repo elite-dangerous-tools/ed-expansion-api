@@ -4,7 +4,6 @@ const { distancia_trailblazer } = require("./src/distancia_trailblazer");
 const { estaciones } = require("./src/estaciones");
 const { beneficio } = require("./src/beneficio");
 
-const cron = require("node-cron");
 const cors = require("cors");
 const express = require("express");
 const app = express();

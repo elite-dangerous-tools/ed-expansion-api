@@ -2,17 +2,25 @@
 const { Client } = require("pg");
 const { db_config } = require("./db_config");
 
-const client = new Client(db_config);
-client.connect();
-client.setTypeParser(20, val => parseInt(val));  // Para BIGINT
+let client = null;
+
+async function getClient() {
+    if (!client) {
+        client = new Client(db_config);
+        client.setTypeParser(20, val => parseInt(val));
+        await client.connect();
+    }
+    return client;
+}
 
 async function buscarProductos() {
+    const db = await getClient();
     const query = `
         SELECT id, COALESCE(nombre, id) AS nombre, tipo
         FROM commodities
     `;
 
-    const { rows } = await client.query(query);
+    const { rows } = await db.query(query);
     
     return rows;
 }
