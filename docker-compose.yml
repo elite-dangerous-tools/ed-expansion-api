@@ -20,6 +20,12 @@ services:
                 max-size: "10m"
                 max-file: "3"
 
+        # Opcional: Límite estricto de seguridad para que jamás consuma más de 128MB de RAM en el VPS
+        deploy:
+            resources:
+                limits:
+                    memory: 192M
+
 networks:
     default:
         name: proxylan
