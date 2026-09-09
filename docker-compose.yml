@@ -1,8 +1,8 @@
-name: ed-colonizacion
+name: ed-expansion
 
 services:
-    ed-colonizacion-api:
-        container_name: ed-colonizacion-api
+    ed-expansion-api:
+        container_name: ed-expansion-api
         # image: node:21-alpine
         image: node-express-ed
         build:
