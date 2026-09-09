@@ -1,12 +1,23 @@
 const fs = require("fs");
 const cheerio = require("cheerio");
 
-const { Client } = require("pg");
+const mysql = require("mysql2/promise");
 const { db_config } = require("../src/db_config");
 
-const client = new Client(db_config);
-client.connect();
-client.setTypeParser(20, val => parseInt(val)); // Para BIGINT
+let connection = null;
+
+async function getConnection() {
+    if (!connection) {
+        connection = await mysql.createConnection({
+            host: db_config.host,
+            user: db_config.user,
+            password: db_config.password,
+            database: db_config.database,
+            port: db_config.port
+        });
+    }
+    return connection;
+}
 
 // Función para escapar comillas en nombres de estaciones
 function escaparComillas(nombre) {
@@ -70,13 +81,13 @@ async function importar() {
         productos.push(`('${nombreIngles}', 'export')`);
     });
 
+    const db = await getConnection();
     const valores = productos.join(",");
     const query = `
-        INSERT INTO commodities (id, tipo)
+        INSERT IGNORE INTO commodities (id, tipo)
         VALUES ${valores}
-        ON CONFLICT (id) DO NOTHING
     ;`;
-    await client.query(query);
+    await db.query(query);
 }
 
 async function traducir(ruta, mercancia_rara=false) {
@@ -98,20 +109,23 @@ async function traducir(ruta, mercancia_rara=false) {
         productos.push(`('${producto_en}', '${producto_es}')`);
     }
 
-    let set_extra = "";
+    let setExtra = "";
     if (mercancia_rara) {
-        set_extra = " , tipo='rare' ";
+        setExtra = ", tipo = 'rare'";
     }
 
-    const valores = productos.join(",");
+    const subqueries = productos.map(v => {
+        const match = v.match(/^\('(.+?)',\s*'(.+?)'\)$/);
+        return `SELECT '${match[1]}' AS id, '${match[2]}' AS nombre`;
+    });
+
+    const db = await getConnection();
     const query = `UPDATE commodities
-        SET nombre = f.nombre
-        ${set_extra}
-        FROM
-            ( VALUES ${valores}
-            ) as f (id, nombre)
-        WHERE lower(commodities.id) = lower(f.id) `;
-    await client.query(query);
+        JOIN (
+            ${subqueries.join("\n            UNION ALL\n            ")}
+        ) AS f ON LOWER(commodities.id) = LOWER(f.id)
+        SET commodities.nombre = f.nombre${setExtra}`;
+    await db.query(query);
 }
 
 exports.importar_productos = async (req, res) => {

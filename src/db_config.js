@@ -1,8 +1,8 @@
 
 exports.db_config = {
-    user: "administrador",
+    user: "apps",
     host: "stormseekers.twilightparadox.com",
     database: "elite",
-    password: "8UtsF1FuIskBRt9TTfnM2",
-    port: 54321
+    password: "BOamXj23OmmhDPtOBq1OiWH0e8QFpg",
+    port: 33061
 };

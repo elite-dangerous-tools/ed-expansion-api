@@ -62,6 +62,7 @@ typings/
 
 # node lock
 *.lock
+*-lock.yaml
 
 assets/*.json*
 assets/*.html
