@@ -11,7 +11,7 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // Permitimos CORS de sitios nuestros
-const allowedOrigins = ["http://localhost:4000", "https://storm-seekers.gitlab.io"];
+const allowedOrigins = ["http://localhost:4000", "https://elite-dangerous-tools.github.io", "https://storm-seekers.gitlab.io"];
 app.use(cors({ origin: allowedOrigins }));
 
 // Programa una tarea para que se ejecute todos los días a las 6 a.m.
