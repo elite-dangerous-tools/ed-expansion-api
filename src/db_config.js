@@ -4,5 +4,5 @@ exports.db_config = {
     host: "mariadb",
     database: "elite",
     password: "BOamXj23OmmhDPtOBq1OiWH0e8QFpg",
-    port: 33061
+    port: 3306
 };
