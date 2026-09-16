@@ -20,11 +20,13 @@ services:
                 max-size: "10m"
                 max-file: "3"
 
-        # Opcional: Límite estricto de seguridad para que jamás consuma más de 128MB de RAM en el VPS
+        # Límite de memoria del contenedor. Heap de Node es 128MB; dejamos
+        # margen para el RSS fuera del heap (buffers, binarios de V8, red).
+        # Una vez optimizado el consumo, valorar bajar de nuevo.
         deploy:
             resources:
                 limits:
-                    memory: 192M
+                    memory: 256M
 
 networks:
     default:

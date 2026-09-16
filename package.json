@@ -3,6 +3,7 @@
     "version": "1.0.0",
     "private": "true",
     "main": "server.js",
+    "packageManager": "pnpm@10.34.5",
     "scripts": {
         "test": "mocha --exit tests/*",
         "start": "node server.js",

@@ -6,8 +6,8 @@ if [ "$resp" = "s" ] || [ "$resp" = "S" ]; then
     docker compose -f ./docker-compose.yml up -d --build # --force-recreate
     docker image prune -f
 else
-    docker kill ed-colonizacion-api
-    docker start ed-colonizacion-api
+    # El contenedor se llama ed-expansion-api (docker-compose.yml)
+    docker restart ed-expansion-api
 fi
 
 # docker logs --follow ed-colonizacion-api
