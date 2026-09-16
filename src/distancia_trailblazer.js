@@ -12,22 +12,26 @@ exports.distancia_trailblazer = async (req, res) => {
             reference_system: sistema
         };
 
-        let resultado = await recuperarBusqueda(parametros, "stations");
-
-        let lista_trailblazers = [];
-
-        resultado.forEach(fila => {
-            lista_trailblazers.push({
+        // Adelgazamos cada página nada más recibirla: solo conservamos los 4
+        // campos que devolvemos (antes se acumulaban todas las páginas crudas)
+        const procesarPagina = (resultados) => {
+            return resultados.map(fila => ({
                 sistema: fila.system_name,
                 estacion: fila.name,
                 distanciaestacion: fila.distance_to_arrival,
                 distanciasistema: fila.distance
-            });
-        });
+            }));
+        };
+
+        let lista_trailblazers = await recuperarBusqueda(parametros, "stations", procesarPagina);
+
+        if (!lista_trailblazers) {
+            return res.status(502).json({ message: "Fallo crítico al buscar Trailblazers" });
+        }
 
         res.json(lista_trailblazers);
     } catch (error) {
-        console.log(error);
-        res.json({ message: "Fallo crítico al buscar Trailblazers" });
+        console.error(error);
+        res.status(500).json({ message: "Fallo crítico al buscar Trailblazers" });
     }
 };

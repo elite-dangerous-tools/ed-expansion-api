@@ -4,14 +4,16 @@ exports.sistemas_alcance = async (req, res) => {
     try {
         const { distancia, sistema } = req.query;
 
-        if (distancia > 100) {
-            // No permitimos tanta distancia
-            res.json([]);
+        // La distancia debe ser un número entre 0 y 100. Excluye no numéricos,
+        // negativos y NaN
+        const distanciaNumero = Number(distancia);
+        if (!Number.isFinite(distanciaNumero) || distanciaNumero < 0 || distanciaNumero > 100) {
+            res.status(400).json({ message: "La distancia debe ser un número entre 0 y 100" });
             return;
         }
 
         const parametros = {
-            filters: { distance: { min: 0, max: distancia } },
+            filters: { distance: { min: 0, max: distanciaNumero } },
             // sort: [],
             size: 500,
             page: 0,
@@ -19,21 +21,44 @@ exports.sistemas_alcance = async (req, res) => {
         };
 
 
-        let resultadoSistemas = await recuperarBusqueda(parametros, 'systems');
-        let resultadoCuerpos = await recuperarBusqueda(parametros, 'bodies');
-        
-        resultadoSistemas.forEach(sistema => {
-            delete sistema.synthesis_recipes;
-            delete sistema.power_conflicts;
-            delete sistema.stations;
-            delete sistema.minor_faction_presences;
+        // Adelgazamos cada página nada más recibirla, antes de pedir la
+        // siguiente (antes se acumulaban todas las páginas crudas en RAM)
+        const procesarPaginaSistemas = (resultados) => {
+            resultados.forEach(sistema => {
+                delete sistema.synthesis_recipes;
+                delete sistema.power_conflicts;
+                delete sistema.stations;
+                delete sistema.minor_faction_presences;
+            });
+            return resultados;
+        };
 
-            let cuerpos = resultadoCuerpos.filter(c => c.system_id64 == sistema.id64);
-            cuerpos.forEach(cuerpo => {
+        const procesarPaginaCuerpos = (resultados) => {
+            resultados.forEach(cuerpo => {
                 delete cuerpo.materials;
                 delete cuerpo.parents;
                 delete cuerpo.synthesis_recipes;
             });
+            return resultados;
+        };
+
+        let resultadoSistemas = await recuperarBusqueda(parametros, 'systems', procesarPaginaSistemas);
+        let resultadoCuerpos = await recuperarBusqueda(parametros, 'bodies', procesarPaginaCuerpos);
+
+        // Índice O(B) por sistema: evita el .filter() O(S×B) dentro del bucle
+        // (antes se recorrian TODOS los cuerpos por cada sistema)
+        const cuerposPorSistema = new Map();
+        resultadoCuerpos.forEach(cuerpo => {
+            let lista = cuerposPorSistema.get(cuerpo.system_id64);
+            if (!lista) {
+                lista = [];
+                cuerposPorSistema.set(cuerpo.system_id64, lista);
+            }
+            lista.push(cuerpo);
+        });
+
+        resultadoSistemas.forEach(sistema => {
+            const cuerpos = cuerposPorSistema.get(sistema.id64) || [];
 
             delete sistema.bodies; // No tienen tanta información
             sistema.bodies = cuerpos;
@@ -41,7 +66,7 @@ exports.sistemas_alcance = async (req, res) => {
 
         res.json(resultadoSistemas);
     } catch (error) {
-        console.log(error);
-        res.json({ message: "Fallo crítico al buscar sistemas al alcance" });
+        console.error(error);
+        res.status(500).json({ message: "Fallo crítico al buscar sistemas al alcance" });
     }
 };

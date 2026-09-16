@@ -38,7 +38,7 @@ exports.productos = async (req, res) => {
         res.json(listaProductos);
 
     } catch (error) {
-        console.log(error);
-        res.json({ message: "Fallo crítico al buscar productos" });
+        console.error(error);
+        res.status(500).json({ message: "Fallo crítico al buscar productos" });
     }
 };
