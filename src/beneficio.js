@@ -5,7 +5,7 @@ const beneficioMinimo = 1000;
 const diasAntiguedadPrecioMaximo = 7;
 
 
-async function prepararBusqueda(sistema, distancia, plataforma, planetaria) {
+async function prepararBusqueda(sistema, distancia, plataforma, planetaria, procesarPagina) {
     const parametros = {
         filters: {
             distance: { min: 0, max: distancia },
@@ -27,7 +27,7 @@ async function prepararBusqueda(sistema, distancia, plataforma, planetaria) {
         parametros.filters.is_planetary = { value: false };
     }
 
-    let respuesta = await recuperarBusqueda(parametros, "stations");
+    let respuesta = await recuperarBusqueda(parametros, "stations", procesarPagina);
 
     return respuesta;
 }
@@ -60,19 +60,40 @@ function guardarProductoCompraVenta(estacionVender, estacionComprar, productoVen
     
 }
 
-function comprobarCompras(estacionVender, productoVender, estacionComprar, listaGrandesBeneficios) {
-    let productoComprar = estacionComprar.market.find(pc => pc.commodity == productoVender.commodity);
-    if (!productoComprar) {
-        return;
-    }
+// Índice O(N): commodity -> lista de { estacion, producto } que lo venden.
+// Sustituye al .find() lineal dentro de bucles anidados (antes era O(N²): por
+// cada producto vendido se recorria el market de TODAS las estaciones
+// compradoras; con ~500 estaciones eran millones de comparaciones por petición).
+function indexarEstacionesComprar(estacionesComprar) {
+    const indice = new Map();
 
-    let beneficio = productoVender.sell_price - productoComprar.buy_price;
-    if (beneficio >= beneficioMinimo && productoComprar.supply >= suministroMinimo) {
-        guardarProductoCompraVenta(estacionVender, estacionComprar, productoVender, productoComprar, beneficio, listaGrandesBeneficios);
-    }
+    estacionesComprar.forEach(estacionComprar => {
+        estacionComprar.market.forEach(productoComprar => {
+            let candidatos = indice.get(productoComprar.commodity);
+            if (!candidatos) {
+                candidatos = [];
+                indice.set(productoComprar.commodity, candidatos);
+            }
+            candidatos.push({ estacion: estacionComprar, producto: productoComprar });
+        });
+    });
+
+    return indice;
 }
 
-function comprobarVenta(estacionVender, productoVender, estacionesComprar, listaGrandesBeneficios) {
+function comprobarCompras(estacionVender, productoVender, candidatosCompra, listaGrandesBeneficios) {
+    candidatosCompra.forEach(candidato => {
+        const estacionComprar = candidato.estacion;
+        const productoComprar = candidato.producto;
+
+        let beneficio = productoVender.sell_price - productoComprar.buy_price;
+        if (beneficio >= beneficioMinimo && productoComprar.supply >= suministroMinimo) {
+            guardarProductoCompraVenta(estacionVender, estacionComprar, productoVender, productoComprar, beneficio, listaGrandesBeneficios);
+        }
+    });
+}
+
+function comprobarVenta(estacionVender, productoVender, indiceCompras, listaGrandesBeneficios) {
     if (productoVender.category == "Minerals") {
         return;
     }
@@ -80,20 +101,22 @@ function comprobarVenta(estacionVender, productoVender, estacionesComprar, lista
         return;
     }
 
-    estacionesComprar.forEach(estacionComprar => {
-        comprobarCompras(estacionVender, productoVender, estacionComprar, listaGrandesBeneficios);
-    });
+    // Lookup O(1) por commodity en vez de recorrer todas las estaciones
+    const candidatosCompra = indiceCompras.get(productoVender.commodity);
+    if (candidatosCompra) {
+        comprobarCompras(estacionVender, productoVender, candidatosCompra, listaGrandesBeneficios);
+    }
 }
 
-function comprobarMercado(estacionVender, estacionesComprar, listaGrandesBeneficios) {
+function comprobarMercado(estacionVender, indiceCompras, listaGrandesBeneficios) {
     estacionVender.market.forEach(productoVender => {
-        comprobarVenta(estacionVender, productoVender, estacionesComprar, listaGrandesBeneficios);
+        comprobarVenta(estacionVender, productoVender, indiceCompras, listaGrandesBeneficios);
     });
 }
 
-function comprobarVentas(estacionesVender, estacionesComprar, listaGrandesBeneficios) {
+function comprobarVentas(estacionesVender, indiceCompras, listaGrandesBeneficios) {
     estacionesVender.forEach(estacionVender => {
-        comprobarMercado(estacionVender, estacionesComprar, listaGrandesBeneficios);
+        comprobarMercado(estacionVender, indiceCompras, listaGrandesBeneficios);
     });
 }
 
@@ -101,80 +124,101 @@ exports.beneficio = async (req, res) => {
     try {
         const { sistema, distancia, plataforma, planetaria } = req.query;
 
-        if (distancia > 150) {
-            // No permitimos tanta distancia
-            return res.json({
-                "error": "No se permite tanta distancia"
+        // La distancia debe ser un número entre 0 y 75 (la web de React tampoco
+        // deja más de 75). Excluye no numéricos, negativos y NaN.
+        // Endpoint de desarrollo sin terminar.
+        const distanciaNumero = Number(distancia);
+        if (!Number.isFinite(distanciaNumero) || distanciaNumero < 0 || distanciaNumero > 75) {
+            return res.status(400).json({
+                "error": "La distancia debe ser un número entre 0 y 75"
             });
         }
 
-        let respuesta = await prepararBusqueda(sistema, distancia, plataforma, planetaria);
+        const ahora = new Date();
+
+        // Adelgazamos y filtramos cada página nada más recibirla, antes de
+        // pedir la siguiente (antes se acumulaban las 5 páginas enteras en RAM)
+        const procesarPagina = (resultados) => {
+            let estacionesPagina = [];
+
+            resultados.forEach(estacion => {
+                if (!estacion) {
+                    return;
+                }
+                if (estacion.type && estacion.type.includes("Construction Depot")) {
+                    return;
+                }
+                if (estacion.name && estacion.name.includes("Colonisation Ship")) {
+                    return;
+                }
+                if (estacion.type && estacion.type == "Settlement" && (planetaria == "0" || planetaria == 0)) {
+                    return;
+                }
+                if (estacion.carrier_docking_access !== undefined) {
+                    return;
+                }
+                if (!estacion.market || estacion.market.length === 0) {
+                    return;
+                }
+
+                // console.log(estacion.name, estacion.system_name, estacion.distance_to_arrival, estacion.distance);
+                let fecha_actualizacion = new Date(estacion.updated_at);
+                let diferenciaEnMilisegundos = ahora.getTime() - fecha_actualizacion.getTime();
+
+                const segundos = Math.floor(diferenciaEnMilisegundos / 1000);
+                const minutos = Math.floor(segundos / 60);
+                const horas = Math.floor(minutos / 60);
+                const dias = Math.floor(horas / 24);
+
+                if (dias > diasAntiguedadPrecioMaximo) {
+                    return;
+                }
+
+                delete estacion.import_commodities;
+                delete estacion.export_commodities;
+
+                delete estacion.economies;
+                delete estacion.services;
+                delete estacion.ships;
+                delete estacion.modules;
+
+                if (estacion.distance === 0) {
+                    // Sistema de búsqueda, solo queremos los productos que la estacion compra
+                    estacion.market = estacion.market.filter(p => p.demand > 0 && p.sell_price > 1);
+                } else if (estacion.distance > 0) {
+                    // Sistema cercano, solo queremos los productos que la estacion vende
+                    estacion.market = estacion.market.filter(p => p.supply > 0 && p.buy_price > 1);
+                }
+
+                estacionesPagina.push(estacion);
+            });
+
+            return estacionesPagina;
+        };
+
+        let respuesta = await prepararBusqueda(sistema, distanciaNumero, plataforma, planetaria, procesarPagina);
         if (!respuesta) {
             return res.json({
                 "error": "No se han encontrado estaciones"
             });
         }
 
+        // Separamos: en el sistema de referencia (distance 0) solo interesan los
+        // productos que compra la estación; en los cercanos, los que vende
         let estacionesVender = [];
         let estacionesComprar = [];
-        const ahora = new Date();
 
         respuesta.forEach(estacion => {
-            if (!estacion) {
-                return;
-            }
-            if (estacion.type && estacion.type.includes("Construction Depot")) {
-                return;
-            }
-            if (estacion.name && estacion.name.includes("Colonisation Ship")) {
-                return;
-            }
-            if (estacion.type && estacion.type == "Settlement" && (planetaria == "0" || planetaria == 0)) {
-                return;
-            }
-            if (estacion.carrier_docking_access !== undefined) {
-                return;
-            }
-            if (!estacion.market || estacion.market.length === 0) {
-                return;
-            }
-
-            // console.log(estacion.name, estacion.system_name, estacion.distance_to_arrival, estacion.distance);
-            let fecha_actualizacion = new Date(estacion.updated_at);
-            let diferenciaEnMilisegundos = ahora.getTime() - fecha_actualizacion.getTime();
-
-            const segundos = Math.floor(diferenciaEnMilisegundos / 1000);
-            const minutos = Math.floor(segundos / 60);
-            const horas = Math.floor(minutos / 60);
-            const dias = Math.floor(horas / 24);
-
-            if (dias > diasAntiguedadPrecioMaximo) {
-                return;
-            }
-
-            delete estacion.import_commodities;
-            delete estacion.export_commodities;
-
-            delete estacion.economies;
-            delete estacion.services;
-            delete estacion.ships;
-            delete estacion.modules;
-
             if (estacion.distance === 0) {
-                // Sistema de búsqueda, solo queremos los productos que la estacion compra
-                estacion.market = estacion.market.filter(p => p.demand > 0 && p.sell_price > 1);
-
                 estacionesVender.push(estacion);
             } else if (estacion.distance > 0) {
-                // Sistema cercano, solo queremos los productos que la estacion vende
-                estacion.market = estacion.market.filter(p => p.supply > 0 && p.buy_price > 1);
-
                 estacionesComprar.push(estacion);
             }
         });
 
         let listaGrandesBeneficios = [];
-        comprobarVentas(estacionesVender, estacionesComprar, listaGrandesBeneficios);
+        const indiceCompras = indexarEstacionesComprar(estacionesComprar);
+        comprobarVentas(estacionesVender, indiceCompras, listaGrandesBeneficios);
 
         listaGrandesBeneficios.sort((a, b) => {
             if (a.beneficio > b.beneficio) {
@@ -190,7 +234,7 @@ exports.beneficio = async (req, res) => {
 
         res.json(primerosCien);
     } catch (error) {
-        console.log(error);
-        res.json({ message: "Fallo crítico al buscar estaciones con el producto" });
+        console.error(error);
+        res.status(500).json({ message: "Fallo crítico al buscar estaciones con el producto" });
     }
 };
