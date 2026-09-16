@@ -38,9 +38,22 @@ app.get("/api/productos", productos);
 app.get("/api/estaciones", estaciones);
 app.get("/api/beneficio", beneficio);
 
-
-app.listen(port, () => {
+const server = app.listen(port, () => {
     console.log(`Servidor corriendo en http://localhost:${port}`);
+});
+
+// Cierre ordenado: docker stop / compose restart envían SIGTERM.
+// Esperamos a que terminen las peticiones en vuelo, con timeout de seguridad.
+process.on("SIGTERM", () => {
+    console.log("SIGTERM recibido, cerrando servidor...");
+    server.close(() => {
+        console.log("Servidor cerrado, saliendo.");
+        process.exit(0);
+    });
+    setTimeout(() => {
+        console.log("Timeout al cerrar, saliendo forzosamente.");
+        process.exit(1);
+    }, 8000).unref();
 });
 
 module.exports = app;
