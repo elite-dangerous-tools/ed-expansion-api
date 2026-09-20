@@ -18,8 +18,8 @@ exports.estaciones = async (req, res) => {
                 has_market: { value: true }
             },
             sort: [{ distance: { direction: "asc" } }],
-            size: 500,
-            page: 0,
+            // size y page los fija recuperarBusqueda (paginacion interna);
+            // no ponerlos aquí para no contradecirla
             reference_system: sistema
         };
 
@@ -37,7 +37,12 @@ exports.estaciones = async (req, res) => {
 
         // Adelgazamos y filtramos cada página nada más recibirla, antes de
         // pedir la siguiente (antes se acumulaban las 5 páginas enteras en RAM
-        // y el filtrado se hacía al final sobre todo el montón)
+        // y el filtrado se hacía al final sobre todo el montón).
+        // Además filtramos las filas muertas del market (supply 0 y demand 0:
+        // ni se puede comprar ni vender ahí): son ~la mitad de las filas y no
+        // aportan nada a la UI. Medido con HIP 10781/75ly: una página de 500
+        // pesa ~19MB de JSON y adelgazada ~7,3MB; filtrando el market baja a
+        // ~3,9MB. Sin esto el heap de 128MB del contenedor revienta.
         const procesarPagina = (resultados) => {
             let listaPagina = [];
             resultados.forEach(estacion => {
@@ -58,6 +63,11 @@ exports.estaciones = async (req, res) => {
                 delete estacion.services;
                 delete estacion.ships;
                 delete estacion.modules;
+
+                estacion.market = estacion.market.filter(p => p.supply > 0 || p.demand > 0);
+                if (estacion.market.length == 0) {
+                    return;
+                }
 
                 listaPagina.push(estacion);
             });

@@ -7,8 +7,7 @@ exports.distancia_trailblazer = async (req, res) => {
         const parametros = {
             filters: { name: { value: "Trailblazer" }, type: { value: ["Planetary Outpost", "Mega ship"] } },
             sort: [{ distance: { direction: "asc" } }],
-            size: 100,
-            page: 0,
+            // size y page los fija recuperarBusqueda (paginacion interna)
             reference_system: sistema
         };
 

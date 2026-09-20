@@ -15,8 +15,7 @@ exports.sistemas_alcance = async (req, res) => {
         const parametros = {
             filters: { distance: { min: 0, max: distanciaNumero } },
             // sort: [],
-            size: 500,
-            page: 0,
+            // size y page los fija recuperarBusqueda (paginacion interna)
             reference_system: sistema
         };
 
@@ -43,7 +42,13 @@ exports.sistemas_alcance = async (req, res) => {
         };
 
         let resultadoSistemas = await recuperarBusqueda(parametros, 'systems', procesarPaginaSistemas);
+        if (!resultadoSistemas) {
+            return res.status(502).json({ message: "spansh no ha respondido, prueba de nuevo en unos segundos" });
+        }
         let resultadoCuerpos = await recuperarBusqueda(parametros, 'bodies', procesarPaginaCuerpos);
+        if (!resultadoCuerpos) {
+            return res.status(502).json({ message: "spansh no ha respondido, prueba de nuevo en unos segundos" });
+        }
 
         // Índice O(B) por sistema: evita el .filter() O(S×B) dentro del bucle
         // (antes se recorrian TODOS los cuerpos por cada sistema)

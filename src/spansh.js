@@ -22,12 +22,28 @@ async function recuperarFiltro(busqueda, tipo) {
     return respuesta.results;
 }
 
-// Si spansh no responde en 15s, mejor fallar rápido (el handler devuelve el
+// Si spansh no responde en 30s, mejor fallar rápido (el handler devuelve el
 // error) que dejar la petición colgada consumiendo memoria del contenedor.
-const TIMEOUT_PETICION_MS = 15000;
+// 30s y no 15s: spansh tarda ~10s en servir una página grande.
+const TIMEOUT_PETICION_MS = 30000;
 
-const paginacion = 500;
-const maximoPaginas = 5;
+// Páginas de 200 en vez de 500: una página de 500 estaciones con markets pesa
+// ~19MB de JSON que al parsearse a objetos ocupa 3-5x en el heap (~60-100MB
+// transitorios). Con el heap limitado del contenedor, eso solo ya roza el OOM.
+// Con 200 el pico por página baja a ~8MB de JSON (~25-40MB en heap).
+// maximoPaginas 12 => tope de 2400 estaciones crudas. Como pedimos ordenadas
+// por distancia ascendente, si hay más nos quedamos con las cercanas. 11
+// páginas cubren HIP 10781 a 75 ly (2082 estaciones), el peor caso real medido.
+// La memoria no se dispara porque el adelgazado (estaciones.js) limpia cada
+// página antes de pedir la siguiente: lo acumulado pesa ~3MB de JSON por
+// página-200, ~35MB de JSON en total para 12 páginas, holgado en 128MB de heap.
+const paginacion = 200;
+const maximoPaginas = 12;
+
+// NOTA: spansh NO admite pedirle que omita campos (probado fields y
+// market_fields: los guarda en la referencia de búsqueda pero sigue
+// devolviendo todos los campos en results). Por eso el adelgazado es
+// cliente-side, página a página.
 
 async function llamadaBusqueda(parametros, tipo) {
     let response;
@@ -77,19 +93,36 @@ async function recuperarBusqueda(parametros, tipo, procesarPagina) {
             return null;
         }
 
-        if (peticion.count > paginacion && peticion.results.length == paginacion && parametros.page < maximoPaginas) {
-            repetir = true;
-            parametros.page++;
-        } else {
-            repetir = false;
-        }
-
         let pagina = peticion.results;
         if (typeof procesarPagina === "function") {
             pagina = procesarPagina(pagina);
         }
 
-        respuestas = respuestas.concat(pagina);
+        // Tope de páginas: paramos aunque queden más resultados. Como pedimos
+        // ordenado por distancia ascendente, nos quedamos con las más cercanas.
+        // Evita acumular miles de estaciones (una búsqueda de 75 ly devuelve
+        // 2000+) hasta reventar el heap.
+        if (peticion.results.length == paginacion && parametros.page + 1 < maximoPaginas) {
+            repetir = true;
+            parametros.page++;
+        } else {
+            if (peticion.count > respuestas.length + pagina.length) {
+                console.warn("spansh (" + tipo + "): truncado a " + (respuestas.length + pagina.length) + " de " + peticion.count + " resultados");
+            }
+            repetir = false;
+        }
+
+        // push en bucle en vez de concat: concat crea un array nuevo copiando
+        // todo lo acumulado (pico transitorio del doble), push reutiliza el mismo
+        for (let i = 0; i < pagina.length; i++) {
+            respuestas.push(pagina[i]);
+        }
+
+        // Liberamos la página cruda cuanto antes para que el GC la reclame
+        // antes de pedir la siguiente (el JSON de una página pesa varios MB)
+        peticion.results = null;
+        peticion = null;
+        pagina = null;
     }
 
     return respuestas;
