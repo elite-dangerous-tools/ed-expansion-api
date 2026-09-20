@@ -1,5 +1,5 @@
 const fs = require("fs");
-const cheerio = require("cheerio");
+const path = require("path");
 
 const mysql = require("mysql2/promise");
 const { db_config } = require("../src/db_config");
@@ -19,123 +19,89 @@ async function getConnection() {
     return connection;
 }
 
-// Función para escapar comillas en nombres de estaciones
-function escaparComillas(nombre) {
-    if (nombre) {
-        return nombre.replace(/'/g, "''"); // Escapar comillas simples
-    }
-    return nombre;
+// Limpia caracteres invisibles (variation selectors, PUA de inara, zero-width)
+function limpiar(s) {
+    return s.replace(/[\uE000-\uF8FF\uFE0E\uFE0F\u200B-\u200D\u2060]/g, "").trim();
 }
 
-function leerIdioma(fichero) {
-    const htmlContent = fs.readFileSync(fichero, "utf8");
-    const $ = cheerio.load(htmlContent);
-
-    let productos = {};
-
-    const tableRows = $("table tr a");
-    tableRows.each((index, element) => {
-        const row = $(element);
-
-        const valor = row.text().trim();
-        const enlace = row.attr("href");
-
-        const datos = enlace.split("/");
-        const id = parseInt(datos[3]);
-
-        productos[id] = valor;
-    });
-
-    return productos;
+function escaparComillas(nombre) {
+    return nombre ? nombre.replace(/'/g, "''") : nombre;
 }
 
 async function descargar(tipo) {
-    let response = await fetch("https://spansh.co.uk/api/stations/field_values/" + tipo, {
-        method: "GET",
-        mode: "no-cors"
-    });
-
+    let response = await fetch("https://spansh.co.uk/api/stations/field_values/" + tipo);
     let respuesta = await response.json();
-
     return respuesta.values.name;
 }
 
 async function importar() {
     let productos = [];
 
-    let prods_importar = await descargar("import_commodities");
-    prods_importar.forEach(prod => {
-        const nombreIngles = escaparComillas(prod);
-        productos.push(`('${nombreIngles}', 'import')`);
-    });
-
-    let prods_prohibidos = await descargar("prohibited_commodities");
-    prods_prohibidos.forEach(prod => {
-        const nombreIngles = escaparComillas(prod);
-        productos.push(`('${nombreIngles}', 'prohibited')`);
-    });
-
-    let prods_exportar = await descargar("export_commodities");
-    prods_exportar.forEach(prod => {
-        const nombreIngles = escaparComillas(prod);
-        productos.push(`('${nombreIngles}', 'export')`);
-    });
+    for (const tipo of ["import_commodities", "export_commodities", "prohibited_commodities"]) {
+        let lista = await descargar(tipo);
+        let tipoSimple = tipo.replace("_commodities", "");
+        lista.forEach(prod => {
+            productos.push(`('${escaparComillas(limpiar(prod))}', '${tipoSimple}')`);
+        });
+    }
 
     const db = await getConnection();
-    const valores = productos.join(",");
-    const query = `
-        INSERT IGNORE INTO commodities (id, tipo)
-        VALUES ${valores}
-    ;`;
+    const query = `INSERT IGNORE INTO commodities (id, tipo) VALUES ${productos.join(",")}`;
     await db.query(query);
+    console.log("Importados", productos.length, "commodities de spansh");
 }
 
-async function traducir(ruta, mercancia_rara=false) {
-    const ruta_en = ruta + "en.html";
-    const ruta_es = ruta + "es.html";
+function cargarTraducciones() {
+    const ruta = path.join(__dirname, "traducciones.json");
+    return JSON.parse(fs.readFileSync(ruta, "utf8"));
+}
 
-    const prods_en = leerIdioma(ruta_en);
-    const prods_es = leerIdioma(ruta_es);
-
-    let productos = [];
-    for (const key in prods_en) {
-        const producto_en = escaparComillas(prods_en[key]);
-        let producto_es = escaparComillas(prods_es[key]);
-
-        if (producto_en == "Steel") {
-            producto_es = "Acero";
-        }
-
-        productos.push(`('${producto_en}', '${producto_es}')`);
-    }
-
-    let setExtra = "";
-    if (mercancia_rara) {
-        setExtra = ", tipo = 'rare'";
-    }
-
-    const subqueries = productos.map(v => {
-        const match = v.match(/^\('(.+?)',\s*'(.+?)'\)$/);
-        return `SELECT '${match[1]}' AS id, '${match[2]}' AS nombre`;
-    });
+async function traducir() {
+    const traducciones = cargarTraducciones();
 
     const db = await getConnection();
-    const query = `UPDATE commodities
-        JOIN (
-            ${subqueries.join("\n            UNION ALL\n            ")}
-        ) AS f ON LOWER(commodities.id) = LOWER(f.id)
-        SET commodities.nombre = f.nombre${setExtra}`;
-    await db.query(query);
+
+    // Actualizar nombre de commodities existentes
+    let actualizadas = 0;
+    for (const [nombreEn, nombreEs] of Object.entries(traducciones)) {
+        const [result] = await db.query(
+            "UPDATE commodities SET nombre = ? WHERE LOWER(id) = LOWER(?) AND (nombre IS NULL OR nombre = '')",
+            [nombreEs, nombreEn]
+        );
+        if (result.affectedRows > 0) actualizadas++;
+    }
+    console.log("Traducidas", actualizadas, "commodities");
+
+    // Insertar commodities raros que no están en spansh (solo tienen traducción)
+    const [existentes] = await db.query("SELECT id FROM commodities");
+    const existentesSet = new Set(existentes.map(r => r.id.toLowerCase()));
+
+    // Insertar commodities que están en traducciones.json pero NO en spansh
+    // (import+export+prohibited). Son commodities raros u otros que inara lista
+    // pero spansh no incluye en sus listas de field_values.
+    const raros = Object.entries(traducciones)
+        .filter(([k]) => !existentesSet.has(k.toLowerCase()));
+
+    if (raros.length > 0) {
+        const valores = raros.map(([k, v]) => `('${escaparComillas(k)}', '${escaparComillas(v)}', 'rare')`).join(",");
+        await db.query(`INSERT INTO commodities (id, nombre, tipo) VALUES ${valores} ON DUPLICATE KEY UPDATE nombre = VALUES(nombre), tipo = 'rare'`);
+        console.log("Insertados", raros.length, "commodities raros");
+    }
 }
 
 exports.importar_productos = async (req, res) => {
     await importar();
-    
-    await traducir("../assets/prod_");
-    await traducir("../assets/rare_", true);
+    await traducir();
 
     if (res) {
         res.json({ message: "ok" });
     }
     console.log("ok");
 };
+
+// Ejecución directa: node scripts/importar_productos.js
+if (require.main === module) {
+    exports.importar_productos()
+        .then(() => process.exit(0))
+        .catch(e => { console.error(e); process.exit(1); });
+}

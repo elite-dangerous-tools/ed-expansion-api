@@ -1,8 +1,0 @@
-
-wget https://inara.cz/elite/commodities-list/?setlanguage=1 -O ../assets/prod_en.html
-wget https://inara.cz/elite/commodities-list/?setlanguage=4 -O ../assets/prod_es.html
-
-wget https://inara.cz/elite/commodities-rare/?setlanguage=1 -O ../assets/rare_en.html
-wget https://inara.cz/elite/commodities-rare/?setlanguage=4 -O ../assets/rare_es.html
-
-sh actualizar_prods.sh
