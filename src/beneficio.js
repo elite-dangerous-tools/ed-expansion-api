@@ -124,13 +124,13 @@ exports.beneficio = async (req, res) => {
     try {
         const { sistema, distancia, plataforma, planetaria } = req.query;
 
-        // La distancia debe ser un número entre 0 y 75 (la web de React tampoco
-        // deja más de 75). Excluye no numéricos, negativos y NaN.
+        // La distancia debe ser un número entre 0 y 50 al (mismo límite que el
+        // front). Excluye no numéricos, negativos y NaN.
         // Endpoint de desarrollo sin terminar.
         const distanciaNumero = Number(distancia);
-        if (!Number.isFinite(distanciaNumero) || distanciaNumero < 0 || distanciaNumero > 75) {
+        if (!Number.isFinite(distanciaNumero) || distanciaNumero < 0 || distanciaNumero > 50) {
             return res.status(400).json({
-                "error": "La distancia debe ser un número entre 0 y 75"
+                "error": "La distancia debe ser un número entre 0 y 50"
             });
         }
 

@@ -4,11 +4,11 @@ exports.sistemas_alcance = async (req, res) => {
     try {
         const { distancia, sistema } = req.query;
 
-        // La distancia debe ser un número entre 0 y 100. Excluye no numéricos,
-        // negativos y NaN
+        // La distancia debe ser un número entre 0 y 50 (el front también limita
+        // a 50 al). Excluye no numéricos, negativos y NaN
         const distanciaNumero = Number(distancia);
-        if (!Number.isFinite(distanciaNumero) || distanciaNumero < 0 || distanciaNumero > 100) {
-            res.status(400).json({ message: "La distancia debe ser un número entre 0 y 100" });
+        if (!Number.isFinite(distanciaNumero) || distanciaNumero < 0 || distanciaNumero > 50) {
+            res.status(400).json({ message: "La distancia debe ser un número entre 0 y 50" });
             return;
         }
 

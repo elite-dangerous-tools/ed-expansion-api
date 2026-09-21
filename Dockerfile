@@ -13,10 +13,10 @@ RUN pnpm install --prod && pnpm store prune
 # Copiar el resto del codigo fuente
 COPY . .
 
-# Heap 160MB: medido pico ~77MB en la peor petición (75 ly). Cabe 1 petición
-# grande por margen y falla con OOM de JS (respuesta HTTP) antes de que el RSS
-# llegue al límite del contenedor (256M): nunca SIGKILL del kernel.
-ENV NODE_OPTIONS="--max-old-space-size=160 --max-semi-space-size=4"
+# Heap 96MB: medido pico ~77MB en la peor petición (75 ly); con el rango
+# de producción a 50 ly el pico real es mucho menor (r³). El OOM de JS
+# (respuesta HTTP) salta antes que el SIGKILL del kernel (256M→192M).
+ENV NODE_OPTIONS="--max-old-space-size=96 --max-semi-space-size=4"
 ENV NODE_ENV=production
 
 EXPOSE 5000
