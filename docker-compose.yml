@@ -1,4 +1,4 @@
-name: ed-expansion
+# name: ed-expansion
 
 services:
     ed-expansion-api:
