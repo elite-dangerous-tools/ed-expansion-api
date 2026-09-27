@@ -20,12 +20,12 @@ services:
                 max-size: "10m"
                 max-file: "3"
 
-        # Heap de Node: 160MB (Dockerfile). 256M deja margen para el RSS fuera
-        # del heap, de modo que el OOM de JS salta antes que el SIGKILL del kernel
+        # Heap de Node: 96MB (Dockerfile). 192M deja margen para el RSS fuera
+        # del heap, de modo que el OOM de JS salte antes que el SIGKILL del kernel
         deploy:
             resources:
                 limits:
-                    memory: 256M
+                    memory: 192M
 
 networks:
     default:
