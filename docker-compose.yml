@@ -14,18 +14,12 @@ services:
             - /etc/localtime:/etc/localtime:ro
         ports:
             - 5000:5000
+        mem_limit: 192M
         restart: unless-stopped
         logging:
             options:
                 max-size: "10m"
                 max-file: "3"
-
-        # Heap de Node: 96MB (Dockerfile). 160M deja margen para el RSS fuera
-        # del heap, de modo que el OOM de JS salte antes que el SIGKILL del kernel
-        deploy:
-            resources:
-                limits:
-                    memory: 160M
 
 networks:
     default:
