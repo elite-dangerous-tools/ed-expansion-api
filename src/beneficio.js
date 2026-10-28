@@ -6,10 +6,19 @@ const diasAntiguedadPrecioMaximo = 7;
 
 
 async function prepararBusqueda(sistema, distancia, plataforma, planetaria, procesarPagina) {
+    // Filtro server-side de antigüedad: spansh no permite pedirle menos campos,
+    // pero sí filtrar por updated_at. Con una ventana algo más ancha que la
+    // client-side (el chequeo exacto de dias > diasAntiguedadPrecioMaximo se
+    // mantiene en procesarPagina) spansh ya no nos manda estaciones viejas:
+    // medido con HIP 10781/25ly baja de 3,97MB a ~78KB de JSON por búsqueda.
+    const ahora = new Date();
+    const fechaLimite = new Date(ahora.getTime() - (diasAntiguedadPrecioMaximo + 1) * 24 * 60 * 60 * 1000);
+
     const parametros = {
         filters: {
             distance: { min: 0, max: distancia },
-            has_market: { value: true }
+            has_market: { value: true },
+            updated_at: { comparison: "<=>", value: [fechaLimite.toISOString(), ahora.toISOString()] }
         },
         sort: [{ distance: { direction: "asc" } }],
         reference_system: sistema

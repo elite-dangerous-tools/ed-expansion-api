@@ -44,6 +44,9 @@ const maximoPaginas = 12;
 // market_fields: los guarda en la referencia de búsqueda pero sigue
 // devolviendo todos los campos en results). Por eso el adelgazado es
 // cliente-side, página a página.
+// Lo que SÍ admite es filtrar server-side por updated_at, type, marketplace,
+// etc. (ver /api/{tipo}/searchable_fields): no adelgaza cada registro, pero
+// reduce cuántos registros viajan. beneficio y estaciones lo aprovechan.
 
 async function llamadaBusqueda(parametros, tipo) {
     let response;

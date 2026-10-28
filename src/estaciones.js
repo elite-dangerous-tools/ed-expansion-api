@@ -1,5 +1,27 @@
 const { recuperarBusqueda } = require("./spansh");
 
+// Tipos de estación admitidos, según /api/stations/field_values/type de spansh.
+// Se piden como filtro server-side (lista de inclusión) para no traer los
+// Construction Depot (Planetary/Space), que son la mitad de las estaciones en
+// zonas de colonización: medido con HIP 10781/25ly baja de 3,97MB a ~490KB.
+// Si spansh añade un tipo nuevo habrá que añadirlo aquí; el filtro client-side
+// de procesarPagina se mantiene como red de seguridad.
+const tiposPermitidos = [
+    "Asteroid base",
+    "Coriolis Starport",
+    "Dockable Planet Station",
+    "Dodec Starport",
+    "Drake-Class Carrier",
+    "Mega ship",
+    "Ocellus Starport",
+    "Orbis Starport",
+    "Outpost",
+    "Planetary Outpost",
+    "Planetary Port",
+    "Settlement",
+    "Surface Settlement"
+];
+
 exports.estaciones = async (req, res) => {
     try {
         const { sistema, distancia, plataforma, planetaria } = req.query;
@@ -15,7 +37,8 @@ exports.estaciones = async (req, res) => {
         const parametros = {
             filters: {
                 distance: { min: 0, max: distanciaNumero },
-                has_market: { value: true }
+                has_market: { value: true },
+                type: { value: tiposPermitidos }
             },
             sort: [{ distance: { direction: "asc" } }],
             // size y page los fija recuperarBusqueda (paginacion interna);
